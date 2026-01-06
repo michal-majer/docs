@@ -41,19 +41,21 @@ S4Kit supports different SAP system types:
 | Type | SAP system type | "s4_public" |
 | Description | Optional notes | "Main production ERP" |
 
-## System Alias
+## How Connection Works
 
-The alias is used in your SDK code to reference the system:
+The SDK's `connection` parameter uses fixed **instance environment** values, not custom aliases:
 
 ```typescript
 const client = new S4Kit({
   apiKey: 'sk_live_...',
-  connection: 'production'  // This is the system alias
+  connection: 'production'  // Fixed environment type
 });
 ```
 
 <Info>
-  Choose meaningful aliases that are easy to remember and type. Use lowercase letters, numbers, and hyphens.
+  **Available environments:** `sandbox`, `dev`, `quality`, `preprod`, `production`
+
+  Your API key determines which system's instance is used. If your key only has access to "ERP Americas", then `connection: 'production'` connects to ERP Americas' production instance.
 </Info>
 
 ## Managing Systems
@@ -102,13 +104,15 @@ Create three S4Kit systems, each with their own instances.
 
 ### Multi-Region Setup
 
-For global deployments with regional SAP systems:
+For global deployments with regional SAP systems, create separate S4Kit systems for each region. Use different API keys to control access:
 
-| System Name | Alias | Region |
-|-------------|-------|--------|
-| ERP Americas | erp-americas | US |
-| ERP EMEA | erp-emea | EU |
-| ERP APAC | erp-apac | Singapore |
+| System Name | Region | API Key Scope |
+|-------------|--------|---------------|
+| ERP Americas | US | `sk_live_us_...` |
+| ERP EMEA | EU | `sk_live_eu_...` |
+| ERP APAC | Singapore | `sk_live_apac_...` |
+
+Each API key is scoped to its system's instances. Using `connection: 'production'` with the US key connects to ERP Americas' production.
 
 ## System Configuration
 
