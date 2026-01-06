@@ -1,0 +1,209 @@
+---
+title: "Services"
+description: "Browse and bind OData services"
+icon: "cube"
+---
+
+## Overview
+
+Services in S4Kit represent SAP OData APIs. The platform includes a catalog of 500+ predefined SAP services, and you can add custom services for your own OData endpoints.
+
+## Service Catalog
+
+S4Kit includes predefined services from the SAP API Business Hub:
+
+### Common Services
+
+| Service | Description |
+|---------|-------------|
+| `API_BUSINESS_PARTNER` | Business Partner master data |
+| `API_SALES_ORDER_SRV` | Sales Order operations |
+| `API_PURCHASEORDER_PROCESS_SRV` | Purchase Order processing |
+| `API_MATERIAL_STOCK_SRV` | Material stock information |
+| `API_PRODUCT_SRV` | Product master data |
+| `API_BILLING_DOCUMENT_SRV` | Billing documents |
+
+### Browsing Services
+
+1. Navigate to **Services** in the dashboard
+2. Use search to find services
+3. Filter by category (Sales, Procurement, Finance, etc.)
+4. Click a service to see details
+
+## Binding Services
+
+To use a service, you must bind it to a system or instance.
+
+### System-Level Binding
+
+Bind a service to all instances of a system:
+
+1. Go to **Systems** → Select your system
+2. Click **Add Service**
+3. Search and select the service
+4. Configure service-level authentication (optional)
+5. Click **Bind**
+
+### Instance-Level Binding
+
+Bind a service to a specific instance with custom configuration:
+
+1. Go to **Instances** → Select your instance
+2. Click **Add Service**
+3. Search and select the service
+4. Configure authentication overrides (optional)
+5. Click **Bind**
+
+## Service Configuration
+
+### Service Path
+
+Each service has a default OData path:
+
+```
+/sap/opu/odata/sap/API_BUSINESS_PARTNER
+```
+
+You can override this for custom endpoints:
+
+```
+/custom/odata/v4/my-service
+```
+
+### Authentication Override
+
+Override authentication for specific services:
+
+```
+Instance Auth → System Service Auth → Instance Service Auth
+```
+
+This is useful when different services require different credentials.
+
+## Custom Services
+
+Add your own OData services:
+
+1. Click **Add Custom Service**
+2. Fill in service details:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| Name | Service name | "Custom Inventory API" |
+| Technical Name | OData service name | "Z_INVENTORY_SRV" |
+| Path | OData endpoint path | "/sap/opu/odata/sap/Z_INVENTORY_SRV" |
+| Version | OData version | "V2" or "V4" |
+| Description | Service description | "Custom inventory management" |
+
+## Service Permissions
+
+When creating API keys, you can grant permissions per service and entity:
+
+```
+API_BUSINESS_PARTNER
+├── A_BusinessPartner: read, write
+├── A_BusinessPartnerAddress: read
+└── A_BusinessPartnerBank: none
+
+API_SALES_ORDER_SRV
+├── A_SalesOrder: read, write
+└── A_SalesOrderItem: read, write
+```
+
+## Using Services
+
+### Default Service Resolution
+
+The SDK automatically resolves services based on entity names:
+
+```typescript
+// SDK determines service from entity name
+const partners = await client.sap.A_BusinessPartner.list();
+// → Uses API_BUSINESS_PARTNER service
+```
+
+### Explicit Service
+
+Specify a service explicitly:
+
+```typescript
+const orders = await client.sap.A_SalesOrder.list({
+  service: 'API_SALES_ORDER_SRV'
+});
+```
+
+### Multiple Services with Same Entity
+
+If multiple services expose the same entity:
+
+```typescript
+// Use service option to specify which
+const products = await client.sap.A_Product.list({
+  service: 'API_PRODUCT_SRV'
+});
+
+// Or configure a default in the client
+const client = new S4Kit({
+  apiKey: 'sk_live_...',
+  service: 'API_PRODUCT_SRV'
+});
+```
+
+## OData Versions
+
+S4Kit supports both OData V2 and V4:
+
+| Version | Description |
+|---------|-------------|
+| **V2** | Classic SAP OData format |
+| **V4** | Modern OData standard |
+
+The platform handles version differences automatically.
+
+## Service Metadata
+
+View service metadata and entities:
+
+1. Click on a bound service
+2. View the **Metadata** tab
+3. See available:
+   - Entity sets
+   - Entity types with properties
+   - Navigation properties
+   - Function imports
+   - Action imports
+
+## Troubleshooting
+
+### Service Not Found
+
+```
+Error: Service 'API_BUSINESS_PARTNER' not found
+```
+
+**Solutions:**
+- Ensure the service is bound to your instance
+- Check that your API key has access to the service
+- Verify the service path is correct
+
+### Entity Not Found
+
+```
+Error: Entity 'A_BusinessPartner' not found in service
+```
+
+**Solutions:**
+- The entity name may be different—check metadata
+- The service might not expose this entity
+- Try a different service
+
+### Authentication Failed
+
+```
+Error: 401 Unauthorized for service
+```
+
+**Solutions:**
+- Verify authentication configuration
+- Check credentials are correct
+- Ensure the SAP user has access to the service

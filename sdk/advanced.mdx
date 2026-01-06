@@ -1,0 +1,308 @@
+---
+title: "Advanced Features"
+description: "Transactions, batch operations, and OData functions"
+icon: "wand-magic-sparkles"
+---
+
+## Transactions
+
+Execute multiple operations atomically with automatic rollback on failure:
+
+```typescript
+const result = await client.transaction(async (tx) => {
+  // Create a sales order
+  const order = await tx.sap.A_SalesOrder.create({
+    SalesOrderType: 'OR',
+    SoldToParty: '10100001'
+  });
+
+  // Create order items
+  await tx.sap.A_SalesOrderItem.create({
+    SalesOrder: order.SalesOrder,
+    Material: 'TG11',
+    RequestedQuantity: 10
+  });
+
+  await tx.sap.A_SalesOrderItem.create({
+    SalesOrder: order.SalesOrder,
+    Material: 'TG12',
+    RequestedQuantity: 5
+  });
+
+  return order;
+});
+
+// If any operation fails, all changes are rolled back
+console.log(`Created order: ${result.SalesOrder}`);
+```
+
+### Transaction Options
+
+```typescript
+const result = await client.transaction(async (tx) => {
+  // Your operations
+}, {
+  isolationLevel: 'serializable', // Transaction isolation level
+  timeout: 30000                   // Timeout in milliseconds
+});
+```
+
+## Batch Requests
+
+Execute multiple independent operations in a single HTTP request:
+
+```typescript
+const batch = client.batch();
+
+// Queue operations
+batch.add(client.sap.A_BusinessPartner.list({ top: 10 }));
+batch.add(client.sap.A_SalesOrder.list({ top: 10 }));
+batch.add(client.sap.A_Product.get('TG11'));
+
+// Execute all at once
+const [partners, orders, product] = await batch.execute();
+```
+
+## OData Functions
+
+Call OData function imports:
+
+### Unbound Functions
+
+```typescript
+// Call a function without binding to an entity
+const result = await client.func('GetExchangeRate', {
+  SourceCurrency: 'USD',
+  TargetCurrency: 'EUR',
+  ExchangeRateDate: '2024-01-15'
+});
+```
+
+### Bound Functions
+
+Functions bound to a specific entity:
+
+```typescript
+// Call a function on a specific entity
+const availability = await client.sap.A_Product
+  .boundFunc('TG11', 'CheckAvailability', {
+    Plant: '1000',
+    RequestedQuantity: 100
+  });
+```
+
+## OData Actions
+
+Call OData action imports (operations that modify data):
+
+### Unbound Actions
+
+```typescript
+// Call an action without binding
+const result = await client.action('ProcessMassChange', {
+  ChangeType: 'PRICE_UPDATE',
+  Percentage: 5.0
+});
+```
+
+### Bound Actions
+
+Actions bound to a specific entity:
+
+```typescript
+// Release a sales order
+await client.sap.A_SalesOrder
+  .boundAction('1000000', 'Release');
+
+// Approve with parameters
+await client.sap.A_PurchaseOrder
+  .boundAction('4500000001', 'Approve', {
+    ApproverComment: 'Approved for processing'
+  });
+```
+
+## Request Interceptors
+
+Add custom logic to every request:
+
+```typescript
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY,
+  interceptors: {
+    request: (config) => {
+      // Add custom headers
+      config.headers['X-Custom-Header'] = 'value';
+
+      // Log requests
+      console.log(`Request: ${config.method} ${config.url}`);
+
+      return config;
+    }
+  }
+});
+```
+
+## Response Interceptors
+
+Process responses before they're returned:
+
+```typescript
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY,
+  interceptors: {
+    response: (response) => {
+      // Log response time
+      console.log(`Response: ${response.status} in ${response.timing}ms`);
+
+      return response;
+    }
+  }
+});
+```
+
+## Error Interceptors
+
+Handle errors globally:
+
+```typescript
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY,
+  interceptors: {
+    error: (error) => {
+      // Log all errors
+      console.error(`Error: ${error.message}`);
+
+      // Optionally transform the error
+      if (error.status === 401) {
+        throw new Error('Session expired. Please re-authenticate.');
+      }
+
+      throw error;
+    }
+  }
+});
+```
+
+## Raw OData Response
+
+Get the full OData response including metadata:
+
+```typescript
+const response = await client.sap.A_BusinessPartner.list({
+  raw: true
+});
+
+console.log(response.d.results);        // Entity array
+console.log(response.d.__count);        // Total count
+console.log(response.d.__next);         // Next page URL
+```
+
+## Custom Headers
+
+Add custom headers to requests:
+
+```typescript
+const partners = await client.sap.A_BusinessPartner.list({
+  headers: {
+    'sap-language': 'DE',
+    'sap-client': '100'
+  }
+});
+```
+
+## Metadata Operations
+
+Access OData service metadata:
+
+```typescript
+// Get service metadata
+const metadata = await client.metadata('API_BUSINESS_PARTNER');
+
+// List available entities
+console.log(metadata.entitySets);
+
+// Get entity type definition
+const partnerType = metadata.entityTypes['A_BusinessPartner'];
+console.log(partnerType.properties);
+```
+
+## ETags and Concurrency
+
+Handle optimistic concurrency with ETags:
+
+```typescript
+// Get entity with ETag
+const partner = await client.sap.A_BusinessPartner.get('10100001');
+
+// Update with ETag check (prevents concurrent modification)
+await client.sap.A_BusinessPartner.update('10100001', {
+  BusinessPartnerFullName: 'Updated Name'
+}, {
+  etag: partner.__metadata?.etag
+});
+```
+
+If the entity was modified by another user, you'll receive a `409 Conflict` error.
+
+## Deep Insert
+
+Create parent and child entities in a single request:
+
+```typescript
+const order = await client.sap.A_SalesOrder.createDeep({
+  SalesOrderType: 'OR',
+  SoldToParty: '10100001',
+  PurchaseOrderByCustomer: 'PO-12345',
+
+  // Nested items
+  to_Item: [
+    {
+      Material: 'TG11',
+      RequestedQuantity: 10,
+      RequestedQuantityUnit: 'PC'
+    },
+    {
+      Material: 'TG12',
+      RequestedQuantity: 5,
+      RequestedQuantityUnit: 'PC'
+    }
+  ],
+
+  // Nested partners
+  to_Partner: [
+    {
+      PartnerFunction: 'SP',
+      Customer: '10100002'
+    }
+  ]
+});
+```
+
+## Query Streaming
+
+For very large result sets, stream results:
+
+```typescript
+const stream = client.sap.A_BusinessPartner.stream({
+  filter: "BusinessPartnerCategory eq '1'"
+});
+
+for await (const partner of stream) {
+  // Process each partner as it arrives
+  await processPartner(partner);
+}
+```
+
+## Connection Pooling
+
+The SDK automatically manages connection pooling. For high-throughput scenarios:
+
+```typescript
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY,
+  pool: {
+    maxConnections: 10,
+    keepAlive: true
+  }
+});
+```

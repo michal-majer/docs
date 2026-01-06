@@ -1,0 +1,243 @@
+---
+title: "Request Logs"
+description: "Monitor requests and troubleshoot issues"
+icon: "scroll"
+---
+
+## Overview
+
+S4Kit logs every request made through the platform, providing a complete audit trail for monitoring, debugging, and compliance.
+
+## Log Information
+
+Each log entry captures:
+
+| Field | Description |
+|-------|-------------|
+| **Timestamp** | When the request was made |
+| **Request ID** | Unique correlation ID |
+| **API Key** | Which key was used (prefix only) |
+| **Instance** | Target SAP instance |
+| **Service** | OData service name |
+| **Entity** | Entity set accessed |
+| **Operation** | CRUD operation type |
+| **Method** | HTTP method (GET, POST, etc.) |
+| **Path** | Request path |
+| **Status** | HTTP status code |
+| **Response Time** | Total request duration |
+| **SAP Response Time** | Time spent in SAP |
+| **Request Size** | Bytes sent |
+| **Response Size** | Bytes received |
+| **Record Count** | Number of records returned |
+| **Error** | Error message if failed |
+
+## Viewing Logs
+
+### Dashboard
+
+1. Navigate to **Logs**
+2. View the log stream
+3. Click on any entry for details
+
+### Filtering
+
+Filter logs by:
+
+| Filter | Options |
+|--------|---------|
+| API Key | Select specific key |
+| Instance | Select instance |
+| Entity | Entity name |
+| Operation | list, get, create, update, delete |
+| Status | Success (2xx), Error (4xx, 5xx) |
+| Time Range | Last hour, day, week, custom |
+
+### Search
+
+Search logs by:
+- Request ID
+- Entity name
+- Error message
+- Path
+
+## Log Details
+
+Click on a log entry to see full details:
+
+```json
+{
+  "requestId": "req_abc123def456",
+  "timestamp": "2024-01-15T10:30:45.123Z",
+  "apiKey": {
+    "id": "key_xyz789",
+    "name": "Backend Service",
+    "prefix": "sk_live_abc1"
+  },
+  "request": {
+    "method": "GET",
+    "path": "/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner",
+    "query": {
+      "$top": "10",
+      "$filter": "BusinessPartnerCategory eq '1'"
+    }
+  },
+  "response": {
+    "status": 200,
+    "size": 15234,
+    "recordCount": 10
+  },
+  "timing": {
+    "total": 245,
+    "sap": 198,
+    "proxy": 47
+  },
+  "instance": {
+    "id": "inst_abc",
+    "name": "Production",
+    "alias": "erp-prod"
+  },
+  "entity": "A_BusinessPartner",
+  "operation": "list"
+}
+```
+
+## Error Tracking
+
+### Error Logs
+
+Filter for errors:
+
+1. Set **Status** filter to "Error"
+2. View failed requests
+3. Check error details
+
+### Error Information
+
+Error logs include:
+
+```json
+{
+  "error": {
+    "code": "ODATA_ERROR",
+    "message": "Resource not found",
+    "sapErrorCode": "005",
+    "sapMessage": "Business Partner 99999999 does not exist"
+  }
+}
+```
+
+### Common Errors
+
+| Status | Meaning | Solution |
+|--------|---------|----------|
+| 400 | Bad Request | Check query syntax |
+| 401 | Unauthorized | Verify credentials |
+| 403 | Forbidden | Check permissions |
+| 404 | Not Found | Entity doesn't exist |
+| 429 | Rate Limited | Reduce request rate |
+| 500 | Server Error | Check SAP system |
+| 503 | Unavailable | SAP system down |
+
+## Performance Monitoring
+
+### Response Times
+
+Monitor performance with timing data:
+
+- **Total Time**: End-to-end request duration
+- **SAP Time**: Time spent in SAP
+- **Proxy Time**: S4Kit overhead
+
+### Identifying Slow Requests
+
+1. Sort by response time
+2. Look for patterns:
+   - Specific entities
+   - Large result sets
+   - Complex filters
+
+### Optimization Tips
+
+For slow requests:
+- Use `$select` to limit fields
+- Add `$top` to limit results
+- Optimize `$filter` expressions
+- Use pagination instead of fetching all
+
+## Log Retention
+
+### Retention Period
+
+Logs are retained based on your plan:
+
+| Plan | Retention |
+|------|-----------|
+| Free | 7 days |
+| Pro | 30 days |
+| Enterprise | 90 days |
+
+### Exporting Logs
+
+Export logs for compliance or analysis:
+
+1. Set your filters
+2. Click **Export**
+3. Choose format (JSON, CSV)
+4. Download the file
+
+## Using Request IDs
+
+Every request has a unique ID for correlation:
+
+### In SDK Errors
+
+```typescript
+try {
+  await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  console.error('Request failed:', error.requestId);
+  // Use this ID when contacting support
+}
+```
+
+### In Support Requests
+
+When reporting issues:
+
+1. Note the request ID
+2. Include timestamp
+3. Describe expected vs actual behavior
+4. Share the request ID with support
+
+## Webhooks (Coming Soon)
+
+<Info>
+  Log webhooks are planned for a future release.
+</Info>
+
+Send logs to external systems:
+- SIEM integration
+- Custom monitoring
+- Alert systems
+
+## Best Practices
+
+### Regular Review
+
+- Check error rates daily
+- Monitor response times
+- Look for unusual patterns
+
+### Alerting
+
+Set up alerts for:
+- Error rate spikes
+- Response time degradation
+- Rate limit hits
+
+### Compliance
+
+For audit requirements:
+- Export logs regularly
+- Store exports securely
+- Document retention policies

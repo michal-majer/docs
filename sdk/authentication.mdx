@@ -1,0 +1,172 @@
+---
+title: "Authentication"
+description: "Authenticate your requests with S4Kit API keys"
+icon: "key"
+---
+
+## API Keys
+
+S4Kit uses API keys for authentication, similar to services like Stripe. API keys provide a secure way to authenticate your application without exposing SAP credentials.
+
+### Key Format
+
+API keys follow this format:
+
+```
+sk_live_abc123def456...  # Production key
+sk_test_abc123def456...  # Test/sandbox key
+```
+
+## Using Your API Key
+
+Pass your API key when creating the client:
+
+```typescript
+import { S4Kit } from 's4kit';
+
+const client = new S4Kit({
+  apiKey: 'sk_live_abc123...'
+});
+```
+
+<Warning>
+  **Security Best Practices:**
+  - Never commit API keys to source control
+  - Use environment variables for API keys
+  - Rotate keys periodically
+  - Use test keys for development
+</Warning>
+
+## Environment Variables
+
+Store your API key securely using environment variables:
+
+```typescript
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY
+});
+```
+
+### Node.js
+
+```bash
+# .env file
+S4KIT_API_KEY=sk_live_abc123...
+```
+
+```typescript
+// Load with dotenv (if not using Bun)
+import 'dotenv/config';
+import { S4Kit } from 's4kit';
+
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY
+});
+```
+
+### Bun
+
+Bun automatically loads `.env` files:
+
+```typescript
+// .env is loaded automatically
+import { S4Kit } from 's4kit';
+
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY
+});
+```
+
+## API Key Permissions
+
+Each API key can have granular permissions that control:
+
+- **Which instances** the key can access (sandbox, dev, production, etc.)
+- **Which entities** the key can read/write
+- **Which operations** are allowed (list, get, create, update, delete)
+
+### Example Permission Configuration
+
+In the S4Kit dashboard, you can configure:
+
+| Entity | List | Get | Create | Update | Delete |
+|--------|------|-----|--------|--------|--------|
+| A_BusinessPartner | ✓ | ✓ | ✗ | ✗ | ✗ |
+| A_SalesOrder | ✓ | ✓ | ✓ | ✓ | ✗ |
+| A_Product | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+If a request is made without the required permission, you'll receive a `403 Forbidden` error.
+
+## Rate Limiting
+
+API keys have rate limits to protect against abuse:
+
+| Limit Type | Default |
+|------------|---------|
+| Per minute | 60 requests |
+| Per day | 10,000 requests |
+
+When you exceed rate limits, you'll receive a `429 Too Many Requests` response with a `Retry-After` header.
+
+```typescript
+import { RateLimitError } from 's4kit';
+
+try {
+  const data = await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);
+  }
+}
+```
+
+## Key Management
+
+### Creating Keys
+
+Create API keys in the [S4Kit Dashboard](https://app.s4kit.com):
+
+1. Navigate to **API Keys**
+2. Click **Create New Key**
+3. Configure permissions and rate limits
+4. Copy the key (it won't be shown again)
+
+### Rotating Keys
+
+To rotate a key without downtime:
+
+1. Create a new key with the same permissions
+2. Update your application to use the new key
+3. Verify the new key works in production
+4. Revoke the old key
+
+### Revoking Keys
+
+If a key is compromised:
+
+1. Go to **API Keys** in the dashboard
+2. Find the compromised key
+3. Click **Revoke**
+
+The key will be immediately invalidated and all requests using it will fail.
+
+## Testing Authentication
+
+Verify your API key is working:
+
+```typescript
+import { S4Kit } from 's4kit';
+
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY,
+  connection: 'erp-sandbox'
+});
+
+try {
+  // Make a simple request to verify authentication
+  const partners = await client.sap.A_BusinessPartner.list({ top: 1 });
+  console.log('Authentication successful!');
+} catch (error) {
+  console.error('Authentication failed:', error.message);
+}
+```

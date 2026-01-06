@@ -1,0 +1,267 @@
+---
+title: "Authentication"
+description: "Configure SAP authentication methods"
+icon: "shield-halved"
+---
+
+## Overview
+
+S4Kit supports multiple authentication methods for connecting to SAP systems. Authentication is configured at the instance or service level.
+
+## Authentication Types
+
+### Basic Authentication
+
+Username and password authentication:
+
+```yaml
+type: basic
+username: SAP_USER
+password: ********
+```
+
+**Use cases:**
+- SAP GUI users with RFC access
+- Technical users
+- Simple integrations
+
+### OAuth 2.0 (Client Credentials)
+
+OAuth authentication using client credentials flow:
+
+```yaml
+type: oauth2
+client_id: your-client-id
+client_secret: ********
+token_url: https://auth.s4hana.cloud.sap/oauth/token
+scope: API_BUSINESS_PARTNER
+```
+
+**Use cases:**
+- S/4HANA Cloud
+- SAP BTP services
+- Modern integrations
+
+### API Key Header
+
+Custom API key in a header:
+
+```yaml
+type: api_key
+header_name: X-API-Key
+header_value: ********
+```
+
+**Use cases:**
+- Custom authentication gateways
+- Third-party API proxies
+
+### Custom Headers
+
+Any custom headers:
+
+```yaml
+type: custom
+headers:
+  Authorization: Bearer token123
+  X-Custom-Auth: custom-value
+  sap-client: "100"
+```
+
+**Use cases:**
+- Complex authentication schemes
+- Multi-header requirements
+
+### No Authentication
+
+For public APIs:
+
+```yaml
+type: none
+```
+
+## Configuration Levels
+
+Authentication can be configured at multiple levels:
+
+```
+┌─────────────────────────────────┐
+│    Instance Service Auth        │  ← Most specific
+├─────────────────────────────────┤
+│    System Service Auth          │
+├─────────────────────────────────┤
+│    Instance Default Auth        │  ← Least specific
+└─────────────────────────────────┘
+```
+
+### Inheritance Chain
+
+The platform uses the most specific configuration:
+
+1. **Instance Service Auth**: For a specific service on a specific instance
+2. **System Service Auth**: For a service across all instances
+3. **Instance Default Auth**: Fallback for the instance
+
+### Example Scenario
+
+```
+Production Instance (Basic Auth: prod_user)
+├── API_BUSINESS_PARTNER (inherits: prod_user)
+├── API_SALES_ORDER_SRV (OAuth: oauth_client)  ← Override
+└── API_CUSTOM_SERVICE (inherits: prod_user)
+```
+
+## Configuring Authentication
+
+### Via Dashboard
+
+1. Navigate to **Instances** or **Services**
+2. Click **Configure Authentication**
+3. Select authentication type
+4. Enter credentials
+5. Click **Save**
+
+### Testing Configuration
+
+After configuring:
+
+1. Click **Test Connection**
+2. Verify the connection succeeds
+3. Check the error message if it fails
+
+## OAuth 2.0 Configuration
+
+### S/4HANA Cloud Setup
+
+1. In SAP, create a Communication Arrangement
+2. Note the OAuth details:
+   - Token URL
+   - Client ID
+   - Client Secret
+   - Scopes
+
+3. Configure in S4Kit:
+
+```yaml
+type: oauth2
+client_id: COMM_ARRANGEMENT_CLIENT
+client_secret: ********
+token_url: https://myXXXXXX-api.s4hana.cloud.sap/sap/bc/sec/oauth2/token
+scope: API_BUSINESS_PARTNER_0001
+```
+
+### Token Caching
+
+S4Kit automatically:
+- Caches OAuth tokens
+- Refreshes before expiration
+- Handles token renewal
+
+## Basic Auth Configuration
+
+### SAP User Setup
+
+1. Create a technical user in SAP
+2. Assign required authorizations:
+   - OData service access
+   - Business object authorizations
+
+3. Configure in S4Kit:
+
+```yaml
+type: basic
+username: S4KIT_TECH_USER
+password: ********
+```
+
+### SAP Client
+
+For multi-client systems:
+
+```yaml
+type: basic
+username: S4KIT_TECH_USER
+password: ********
+additional_headers:
+  sap-client: "100"
+```
+
+## Security
+
+### Credential Storage
+
+All credentials are encrypted using libsodium:
+
+```
+Original → Encrypt (libsodium) → Store (encrypted)
+```
+
+- Encryption key is separate from data
+- Credentials cannot be retrieved after saving
+- Only "update" or "remove" operations available
+
+### Credential Visibility
+
+In the dashboard, sensitive values show:
+
+```
+Password: ••••••••
+Client Secret: ••••••••
+```
+
+### Audit Trail
+
+All authentication changes are logged:
+- Who made the change
+- When it was made
+- What was modified
+
+## Troubleshooting
+
+### 401 Unauthorized
+
+**Possible causes:**
+- Invalid credentials
+- User account locked
+- Missing authorizations
+
+**Solutions:**
+1. Verify credentials in SAP
+2. Check user is not locked
+3. Verify OData service authorization
+
+### 403 Forbidden
+
+**Possible causes:**
+- Missing business authorizations
+- IP restrictions
+- License issues
+
+**Solutions:**
+1. Check user's SAP authorizations
+2. Verify IP allowlist if applicable
+3. Contact SAP basis team
+
+### OAuth Token Errors
+
+**Common issues:**
+- Invalid client credentials
+- Wrong token URL
+- Missing scopes
+
+**Solutions:**
+1. Regenerate client credentials
+2. Verify token URL matches SAP
+3. Add required scopes
+
+### Connection Timeout
+
+**Possible causes:**
+- Network connectivity
+- Firewall blocking
+- SAP system down
+
+**Solutions:**
+1. Verify network path to SAP
+2. Check firewall rules
+3. Confirm SAP system is running

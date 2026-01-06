@@ -1,0 +1,277 @@
+---
+title: "API Keys"
+description: "Generate and manage API keys"
+icon: "key"
+---
+
+## Overview
+
+API keys authenticate SDK requests to the S4Kit platform. They follow a Stripe-like model with granular permissions and rate limits.
+
+## Key Format
+
+API keys have a recognizable format:
+
+```
+sk_live_abc123def456ghi789...  # Production key
+sk_test_abc123def456ghi789...  # Test key
+```
+
+- `sk_` prefix identifies S4Kit keys
+- `live_` or `test_` indicates the environment
+- Random string ensures uniqueness
+
+## Creating API Keys
+
+### Via Dashboard
+
+1. Navigate to **API Keys**
+2. Click **Create Key**
+3. Configure the key:
+
+| Field | Description |
+|-------|-------------|
+| Name | Descriptive name (e.g., "Backend Service") |
+| Description | Optional notes |
+| Instances | Which instances the key can access |
+| Permissions | Entity-level permissions |
+| Rate Limits | Per-minute and per-day limits |
+
+4. Click **Create**
+5. **Copy the key immediately**—it won't be shown again
+
+<Warning>
+  The full API key is only displayed once. Store it securely.
+</Warning>
+
+## Permissions
+
+### Permission Model
+
+Each API key can have granular permissions:
+
+```
+Instance → Service → Entity → Operations
+```
+
+### Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **list** | Query multiple entities |
+| **get** | Retrieve single entity |
+| **create** | Create new entities |
+| **update** | Modify existing entities |
+| **delete** | Remove entities |
+
+### Example Configuration
+
+```yaml
+erp-prod:
+  API_BUSINESS_PARTNER:
+    A_BusinessPartner:
+      - list
+      - get
+    A_BusinessPartnerAddress:
+      - list
+      - get
+
+erp-dev:
+  API_BUSINESS_PARTNER:
+    A_BusinessPartner:
+      - list
+      - get
+      - create
+      - update
+      - delete
+```
+
+### Wildcard Permissions
+
+Grant access to all entities in a service:
+
+```yaml
+erp-prod:
+  API_BUSINESS_PARTNER:
+    "*":
+      - list
+      - get
+```
+
+## Rate Limits
+
+### Default Limits
+
+| Limit | Default |
+|-------|---------|
+| Per minute | 60 requests |
+| Per day | 10,000 requests |
+
+### Custom Limits
+
+Set custom limits per API key:
+
+```yaml
+rate_limits:
+  per_minute: 120
+  per_day: 50000
+```
+
+### Rate Limit Headers
+
+The SDK receives rate limit information in headers:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1640000000
+```
+
+### Handling Rate Limits
+
+```typescript
+import { RateLimitError } from 's4kit';
+
+try {
+  await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    // Wait and retry
+    await sleep(error.retryAfter * 1000);
+    await client.sap.A_BusinessPartner.list();
+  }
+}
+```
+
+## Key Management
+
+### Viewing Keys
+
+The dashboard shows:
+- Key name and description
+- Key prefix (e.g., `sk_live_abc1...xyz9`)
+- Last 4 characters
+- Created date
+- Last used date
+
+### Editing Keys
+
+Update key settings without regenerating:
+
+1. Click on the key
+2. Modify permissions or rate limits
+3. Click **Save**
+
+### Revoking Keys
+
+Immediately invalidate a key:
+
+1. Click on the key
+2. Click **Revoke**
+3. Confirm revocation
+
+<Warning>
+  Revoking a key immediately stops all requests using that key. This cannot be undone.
+</Warning>
+
+## Key Rotation
+
+### Safe Rotation Process
+
+1. Create a new key with the same permissions
+2. Deploy the new key to your application
+3. Monitor both keys for a transition period
+4. Revoke the old key once no longer in use
+
+### Zero-Downtime Rotation
+
+```typescript
+// Support multiple keys during rotation
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY_NEW || process.env.S4KIT_API_KEY
+});
+```
+
+## Security Best Practices
+
+### Never Commit Keys
+
+```bash
+# .gitignore
+.env
+.env.local
+.env.*.local
+```
+
+### Use Environment Variables
+
+```typescript
+// Good
+const client = new S4Kit({
+  apiKey: process.env.S4KIT_API_KEY
+});
+
+// Bad - never hardcode keys
+const client = new S4Kit({
+  apiKey: 'sk_live_abc123...'
+});
+```
+
+### Principle of Least Privilege
+
+- Only grant permissions the key needs
+- Use separate keys for different services
+- Prefer read-only keys when possible
+
+### Monitor Usage
+
+- Review API key logs regularly
+- Set up alerts for unusual activity
+- Revoke unused keys
+
+## Common Use Cases
+
+### Read-Only Analytics Key
+
+For dashboards and reporting:
+
+```yaml
+permissions:
+  erp-prod:
+    API_SALES_ORDER_SRV:
+      A_SalesOrder: [list, get]
+      A_SalesOrderItem: [list, get]
+rate_limits:
+  per_minute: 30
+  per_day: 5000
+```
+
+### Backend Service Key
+
+For application backends:
+
+```yaml
+permissions:
+  erp-prod:
+    API_BUSINESS_PARTNER:
+      "*": [list, get, create, update]
+    API_SALES_ORDER_SRV:
+      "*": [list, get, create, update]
+rate_limits:
+  per_minute: 120
+  per_day: 50000
+```
+
+### Development Key
+
+For local development:
+
+```yaml
+permissions:
+  erp-sandbox:
+    "*":
+      "*": [list, get, create, update, delete]
+rate_limits:
+  per_minute: 60
+  per_day: 10000
+```

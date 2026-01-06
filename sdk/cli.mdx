@@ -1,0 +1,262 @@
+---
+title: "CLI"
+description: "Command-line interface for type generation and utilities"
+icon: "terminal"
+---
+
+## Overview
+
+The S4Kit CLI provides utilities for type generation, project initialization, and more.
+
+```bash
+npx s4kit <command> [options]
+```
+
+Or install globally:
+
+```bash
+npm install -g s4kit
+s4kit <command> [options]
+```
+
+## Commands
+
+### generate-types
+
+Generate TypeScript type definitions from SAP OData metadata:
+
+```bash
+npx s4kit generate-types --connection erp-prod --output ./src/types/sap.d.ts
+```
+
+#### Options
+
+| Option | Alias | Description | Required |
+|--------|-------|-------------|----------|
+| `--connection` | `-c` | SAP instance alias | Yes |
+| `--service` | `-s` | OData service name (or all services) | No |
+| `--output` | `-o` | Output file path | Yes |
+| `--api-key` | `-k` | API key (or use S4KIT_API_KEY env) | No |
+
+#### Examples
+
+```bash
+# Generate types for all services
+npx s4kit generate-types -c erp-prod -o ./types/sap.d.ts
+
+# Generate types for a specific service
+npx s4kit generate-types -c erp-prod -s API_BUSINESS_PARTNER -o ./types/bp.d.ts
+
+# With explicit API key
+npx s4kit generate-types -c erp-prod -o ./types/sap.d.ts -k sk_live_abc123
+```
+
+#### Generated Types
+
+The CLI generates comprehensive TypeScript types:
+
+```typescript
+// ./types/sap.d.ts (generated)
+
+export interface A_BusinessPartner {
+  BusinessPartner: string;
+  Customer?: string;
+  Supplier?: string;
+  AcademicTitle?: string;
+  AuthorizationGroup?: string;
+  BusinessPartnerCategory?: string;
+  BusinessPartnerFullName?: string;
+  // ... all fields with correct types
+}
+
+export interface A_BusinessPartnerAddress {
+  BusinessPartner: string;
+  AddressID: string;
+  CityName?: string;
+  Country?: string;
+  // ...
+}
+
+// Navigation properties
+export interface A_BusinessPartner_Navigations {
+  to_BusinessPartnerAddress: A_BusinessPartnerAddress[];
+  to_BusinessPartnerBank: A_BusinessPartnerBank[];
+  // ...
+}
+```
+
+#### Using Generated Types
+
+```typescript
+import type { A_BusinessPartner } from './types/sap';
+import { S4Kit } from 's4kit';
+
+const client = new S4Kit({ apiKey: '...' });
+
+// Fully typed response
+const partners: A_BusinessPartner[] = await client.sap.A_BusinessPartner.list();
+
+// Autocomplete for fields
+partners.forEach(p => {
+  console.log(p.BusinessPartnerFullName); // TypeScript knows this field
+});
+```
+
+### init
+
+Initialize a new S4Kit project:
+
+```bash
+npx s4kit init
+```
+
+This creates:
+- `.env.example` with configuration template
+- `s4kit.config.ts` with default settings
+- TypeScript configuration if not present
+
+### version
+
+Display the CLI version:
+
+```bash
+npx s4kit version
+# s4kit v1.2.3
+```
+
+### help
+
+Show help information:
+
+```bash
+npx s4kit help
+npx s4kit help generate-types
+```
+
+## Configuration File
+
+Create `s4kit.config.ts` for persistent CLI configuration:
+
+```typescript
+// s4kit.config.ts
+import type { S4KitConfig } from 's4kit';
+
+export default {
+  apiKey: process.env.S4KIT_API_KEY,
+  defaultConnection: 'erp-prod',
+  types: {
+    output: './src/types/sap.d.ts',
+    services: ['API_BUSINESS_PARTNER', 'API_SALES_ORDER_SRV']
+  }
+} satisfies S4KitConfig;
+```
+
+Then run without options:
+
+```bash
+npx s4kit generate-types
+# Uses configuration from s4kit.config.ts
+```
+
+## Environment Variables
+
+The CLI respects these environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `S4KIT_API_KEY` | Default API key |
+| `S4KIT_BASE_URL` | Custom API base URL |
+| `S4KIT_CONNECTION` | Default connection |
+| `S4KIT_DEBUG` | Enable debug logging |
+
+```bash
+# .env
+S4KIT_API_KEY=sk_live_abc123
+S4KIT_CONNECTION=erp-prod
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/generate-types.yml
+name: Generate SAP Types
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - run: npx s4kit generate-types -c erp-prod -o ./src/types/sap.d.ts
+        env:
+          S4KIT_API_KEY: ${{ secrets.S4KIT_API_KEY }}
+
+      - name: Commit changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add src/types/
+          git diff --staged --quiet || git commit -m "chore: update SAP types"
+          git push
+```
+
+### GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+generate-types:
+  image: node:20
+  script:
+    - npm install
+    - npx s4kit generate-types -c erp-prod -o ./src/types/sap.d.ts
+  variables:
+    S4KIT_API_KEY: $S4KIT_API_KEY
+  artifacts:
+    paths:
+      - src/types/
+```
+
+## Troubleshooting
+
+### Authentication Failed
+
+```bash
+Error: Authentication failed. Check your API key.
+```
+
+Verify your API key:
+- Check `S4KIT_API_KEY` environment variable is set
+- Ensure the key has access to the specified connection
+- Try using `--api-key` flag explicitly
+
+### Connection Not Found
+
+```bash
+Error: Connection 'erp-prod' not found.
+```
+
+Verify the connection exists in your S4Kit dashboard and your API key has access to it.
+
+### Service Not Found
+
+```bash
+Error: Service 'API_BUSINESS_PARTNER' not found for connection 'erp-prod'.
+```
+
+Check that:
+1. The service is registered in the platform
+2. The service is bound to an instance
+3. Your API key has access to the service

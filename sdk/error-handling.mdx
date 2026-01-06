@@ -1,0 +1,322 @@
+---
+title: "Error Handling"
+description: "Handle errors gracefully in your application"
+icon: "triangle-exclamation"
+---
+
+## Error Types
+
+The SDK provides typed error classes for different error scenarios:
+
+```typescript
+import {
+  S4KitError,
+  ValidationError,
+  NotFoundError,
+  AuthenticationError,
+  AuthorizationError,
+  RateLimitError,
+  NetworkError,
+  ODataError
+} from 's4kit';
+```
+
+## Basic Error Handling
+
+```typescript
+import { S4Kit, NotFoundError, RateLimitError } from 's4kit';
+
+const client = new S4Kit({ apiKey: '...' });
+
+try {
+  const partner = await client.sap.A_BusinessPartner.get('10100001');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.log('Partner not found');
+  } else if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter}s`);
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+## Error Classes
+
+### S4KitError
+
+Base class for all S4Kit errors:
+
+```typescript
+class S4KitError extends Error {
+  code: string;           // Error code
+  status?: number;        // HTTP status code
+  requestId?: string;     // Request correlation ID
+  details?: unknown;      // Additional error details
+}
+```
+
+### ValidationError
+
+Thrown when request data fails validation:
+
+```typescript
+try {
+  await client.sap.A_BusinessPartner.create({
+    // Missing required fields
+  });
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log('Validation failed:', error.message);
+    console.log('Invalid fields:', error.details);
+  }
+}
+```
+
+### NotFoundError
+
+Thrown when an entity doesn't exist:
+
+```typescript
+try {
+  const partner = await client.sap.A_BusinessPartner.get('INVALID');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.log(`Entity not found: ${error.entityName} with key ${error.key}`);
+  }
+}
+```
+
+### AuthenticationError
+
+Thrown when authentication fails (invalid API key):
+
+```typescript
+try {
+  const client = new S4Kit({ apiKey: 'invalid_key' });
+  await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.log('Invalid API key');
+  }
+}
+```
+
+### AuthorizationError
+
+Thrown when the API key lacks required permissions:
+
+```typescript
+try {
+  // API key doesn't have delete permission
+  await client.sap.A_BusinessPartner.delete('10100001');
+} catch (error) {
+  if (error instanceof AuthorizationError) {
+    console.log('Permission denied:', error.message);
+    console.log('Required permission:', error.requiredPermission);
+  }
+}
+```
+
+### RateLimitError
+
+Thrown when rate limits are exceeded:
+
+```typescript
+try {
+  await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);
+    console.log(`Limit: ${error.limit}, Remaining: ${error.remaining}`);
+  }
+}
+```
+
+### NetworkError
+
+Thrown for network-related issues:
+
+```typescript
+try {
+  await client.sap.A_BusinessPartner.list();
+} catch (error) {
+  if (error instanceof NetworkError) {
+    console.log('Network error:', error.message);
+    // Retry logic
+  }
+}
+```
+
+### ODataError
+
+Thrown when SAP returns an OData error:
+
+```typescript
+try {
+  await client.sap.A_SalesOrder.create({ /* invalid data */ });
+} catch (error) {
+  if (error instanceof ODataError) {
+    console.log('SAP Error Code:', error.sapErrorCode);
+    console.log('SAP Message:', error.sapMessage);
+    console.log('Details:', error.innerError);
+  }
+}
+```
+
+## Automatic Retries
+
+The SDK automatically retries certain errors:
+
+```typescript
+const client = new S4Kit({
+  apiKey: '...',
+  retry: {
+    maxRetries: 3,
+    retryDelay: 1000,        // Base delay in ms
+    retryOn: [               // HTTP status codes to retry
+      408,  // Request Timeout
+      429,  // Rate Limited
+      500,  // Internal Server Error
+      502,  // Bad Gateway
+      503,  // Service Unavailable
+      504   // Gateway Timeout
+    ]
+  }
+});
+```
+
+### Disable Retries
+
+```typescript
+const client = new S4Kit({
+  apiKey: '...',
+  retry: false
+});
+```
+
+## Error Handling Patterns
+
+### Comprehensive Try-Catch
+
+```typescript
+import {
+  ValidationError,
+  NotFoundError,
+  AuthenticationError,
+  AuthorizationError,
+  RateLimitError,
+  NetworkError,
+  ODataError,
+  S4KitError
+} from 's4kit';
+
+async function getPartner(id: string) {
+  try {
+    return await client.sap.A_BusinessPartner.get(id);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return null; // Return null for missing entities
+    }
+
+    if (error instanceof AuthenticationError) {
+      // Trigger re-authentication
+      await refreshApiKey();
+      return getPartner(id); // Retry
+    }
+
+    if (error instanceof RateLimitError) {
+      // Wait and retry
+      await sleep(error.retryAfter * 1000);
+      return getPartner(id);
+    }
+
+    if (error instanceof ODataError) {
+      // Log SAP-specific error
+      console.error(`SAP Error: ${error.sapErrorCode} - ${error.sapMessage}`);
+    }
+
+    // Re-throw unexpected errors
+    throw error;
+  }
+}
+```
+
+### Error Wrapper
+
+```typescript
+async function safeOperation<T>(
+  operation: () => Promise<T>,
+  fallback: T
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return fallback;
+    }
+    throw error;
+  }
+}
+
+// Usage
+const partner = await safeOperation(
+  () => client.sap.A_BusinessPartner.get('10100001'),
+  null
+);
+```
+
+### Logging Errors
+
+```typescript
+import { S4KitError } from 's4kit';
+
+function logError(error: unknown) {
+  if (error instanceof S4KitError) {
+    console.error({
+      type: error.constructor.name,
+      code: error.code,
+      message: error.message,
+      status: error.status,
+      requestId: error.requestId,
+      details: error.details
+    });
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+## Error Response Format
+
+When errors occur, the SDK includes helpful debugging information:
+
+```typescript
+try {
+  await client.sap.A_BusinessPartner.get('INVALID');
+} catch (error) {
+  console.log(error.message);      // Human-readable message
+  console.log(error.code);         // 'NOT_FOUND'
+  console.log(error.status);       // 404
+  console.log(error.requestId);    // 'req_abc123...' for support
+}
+```
+
+## Debugging
+
+Enable debug mode for detailed logging:
+
+```typescript
+const client = new S4Kit({
+  apiKey: '...',
+  debug: true
+});
+
+// Logs all requests/responses to console
+```
+
+Or use the `S4KIT_DEBUG` environment variable:
+
+```bash
+S4KIT_DEBUG=true node app.js
+```

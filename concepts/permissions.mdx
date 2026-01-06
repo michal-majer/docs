@@ -1,0 +1,353 @@
+---
+title: "Permissions Model"
+description: "Understanding API key permissions and access control"
+icon: "lock"
+---
+
+## Overview
+
+S4Kit uses a granular permission model that controls access at multiple levels: instances, services, entities, and operations.
+
+## Permission Hierarchy
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                       API Key                              │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │                    Instances                         │  │
+│  │  ┌───────────────────────────────────────────────┐  │  │
+│  │  │                  Services                      │  │  │
+│  │  │  ┌─────────────────────────────────────────┐  │  │  │
+│  │  │  │               Entities                   │  │  │  │
+│  │  │  │  ┌───────────────────────────────────┐  │  │  │  │
+│  │  │  │  │           Operations               │  │  │  │  │
+│  │  │  │  │   list | get | create | update |  │  │  │  │  │
+│  │  │  │  │   delete                          │  │  │  │  │
+│  │  │  │  └───────────────────────────────────┘  │  │  │  │
+│  │  │  └─────────────────────────────────────────┘  │  │  │
+│  │  └───────────────────────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────┘
+```
+
+## Operations
+
+Each entity can have these operations:
+
+| Operation | HTTP Method | Description |
+|-----------|-------------|-------------|
+| `list` | GET (collection) | Query multiple entities |
+| `get` | GET (single) | Retrieve one entity |
+| `create` | POST | Create new entity |
+| `update` | PATCH/PUT | Modify existing entity |
+| `delete` | DELETE | Remove entity |
+
+## Permission Configuration
+
+### Basic Configuration
+
+```yaml
+api_key: Backend Service
+permissions:
+  erp-prod:                          # Instance
+    API_BUSINESS_PARTNER:            # Service
+      A_BusinessPartner:             # Entity
+        - list                       # Operations
+        - get
+        - create
+        - update
+```
+
+### Full Example
+
+```yaml
+api_key: Full Access Key
+permissions:
+  # Production - Read only
+  erp-prod:
+    API_BUSINESS_PARTNER:
+      A_BusinessPartner:
+        - list
+        - get
+      A_BusinessPartnerAddress:
+        - list
+        - get
+
+    API_SALES_ORDER_SRV:
+      A_SalesOrder:
+        - list
+        - get
+      A_SalesOrderItem:
+        - list
+        - get
+
+  # Development - Full access
+  erp-dev:
+    API_BUSINESS_PARTNER:
+      "*":                           # All entities
+        - list
+        - get
+        - create
+        - update
+        - delete
+
+    API_SALES_ORDER_SRV:
+      "*":
+        - list
+        - get
+        - create
+        - update
+        - delete
+```
+
+## Wildcards
+
+### Entity Wildcard
+
+Grant access to all entities in a service:
+
+```yaml
+API_BUSINESS_PARTNER:
+  "*":
+    - list
+    - get
+```
+
+### Service Wildcard
+
+Grant access to all services on an instance:
+
+```yaml
+erp-dev:
+  "*":
+    "*":
+      - list
+      - get
+```
+
+## Permission Checks
+
+### Check Flow
+
+```
+1. Does key have access to instance?
+   └─ No → 403 Forbidden
+
+2. Does key have access to service?
+   └─ No → 403 Forbidden
+
+3. Does key have access to entity?
+   └─ No → 403 Forbidden
+
+4. Does key have access to operation?
+   └─ No → 403 Forbidden
+
+5. ✓ Request allowed
+```
+
+### Example Checks
+
+Request: `GET /A_BusinessPartner?$top=10`
+
+```
+Instance: erp-prod ✓ (has access)
+Service: API_BUSINESS_PARTNER ✓ (has access)
+Entity: A_BusinessPartner ✓ (has access)
+Operation: list ✓ (has list permission)
+→ Request allowed
+```
+
+Request: `DELETE /A_BusinessPartner('10100001')`
+
+```
+Instance: erp-prod ✓
+Service: API_BUSINESS_PARTNER ✓
+Entity: A_BusinessPartner ✓
+Operation: delete ✗ (no delete permission)
+→ 403 Forbidden
+```
+
+## Error Responses
+
+### Missing Instance Access
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API key does not have access to instance 'erp-prod'"
+  }
+}
+```
+
+### Missing Entity Access
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API key does not have access to entity 'A_BusinessPartner'"
+  }
+}
+```
+
+### Missing Operation Access
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API key does not have 'delete' permission for 'A_BusinessPartner'"
+  }
+}
+```
+
+## Best Practices
+
+### Principle of Least Privilege
+
+Only grant permissions that are needed:
+
+```yaml
+# Good - Specific permissions
+A_BusinessPartner:
+  - list
+  - get
+
+# Avoid - Unnecessary permissions
+A_BusinessPartner:
+  - list
+  - get
+  - create
+  - update
+  - delete  # Not needed for reporting
+```
+
+### Environment Separation
+
+Different permissions per environment:
+
+```yaml
+# Production - Read only
+erp-prod:
+  API_BUSINESS_PARTNER:
+    "*":
+      - list
+      - get
+
+# Development - Full access for testing
+erp-dev:
+  API_BUSINESS_PARTNER:
+    "*":
+      - list
+      - get
+      - create
+      - update
+      - delete
+```
+
+### Separate Keys by Use Case
+
+```yaml
+# Analytics key - Read only everywhere
+analytics_key:
+  erp-prod:
+    "*":
+      "*":
+        - list
+        - get
+
+# Integration key - Write access to specific entities
+integration_key:
+  erp-prod:
+    API_SALES_ORDER_SRV:
+      A_SalesOrder:
+        - list
+        - get
+        - create
+        - update
+```
+
+### Audit Regularly
+
+Review API key permissions periodically:
+- Remove unused permissions
+- Revoke unused keys
+- Check for overly broad access
+
+## Common Patterns
+
+### Read-Only Analytics
+
+```yaml
+permissions:
+  erp-prod:
+    "*":
+      "*":
+        - list
+        - get
+rate_limits:
+  per_minute: 30
+  per_day: 5000
+```
+
+### Order Processing
+
+```yaml
+permissions:
+  erp-prod:
+    API_SALES_ORDER_SRV:
+      A_SalesOrder:
+        - list
+        - get
+        - create
+      A_SalesOrderItem:
+        - list
+        - get
+        - create
+    API_BUSINESS_PARTNER:
+      A_BusinessPartner:
+        - list
+        - get
+```
+
+### Master Data Sync
+
+```yaml
+permissions:
+  erp-prod:
+    API_BUSINESS_PARTNER:
+      "*":
+        - list
+        - get
+        - create
+        - update
+    API_PRODUCT_SRV:
+      "*":
+        - list
+        - get
+        - create
+        - update
+```
+
+### Development/Testing
+
+```yaml
+permissions:
+  erp-sandbox:
+    "*":
+      "*":
+        - list
+        - get
+        - create
+        - update
+        - delete
+  erp-dev:
+    "*":
+      "*":
+        - list
+        - get
+        - create
+        - update
+        - delete
+```

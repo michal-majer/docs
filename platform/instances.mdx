@@ -1,0 +1,191 @@
+---
+title: "Instances"
+description: "Configure SAP environment endpoints"
+icon: "layer-group"
+---
+
+## Overview
+
+Instances represent specific SAP environments within a system. Each instance has its own base URL and can have its own authentication configuration.
+
+## Instance Types
+
+S4Kit supports five instance levels, in priority order:
+
+| Level | Type | Description |
+|-------|------|-------------|
+| 1 | **Production** | Live business data |
+| 2 | **Pre-production** | Final testing before go-live |
+| 3 | **Quality** | QA and integration testing |
+| 4 | **Development** | Developer sandbox |
+| 5 | **Sandbox** | Safe testing environment |
+
+## Instance Priority
+
+When an API key has access to multiple instances and no specific instance is requested, S4Kit automatically selects the highest-priority available instance.
+
+```typescript
+// If API key has access to dev and sandbox, dev is used
+const partners = await client.sap.A_BusinessPartner.list();
+
+// Override to use a specific instance
+const sandboxPartners = await client.sap.A_BusinessPartner.list({
+  connection: 'erp-sandbox'
+});
+```
+
+## Creating an Instance
+
+### Via Dashboard
+
+1. Navigate to a System
+2. Click **Add Instance**
+3. Configure the instance:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| Environment | Instance level | Development |
+| Base URL | SAP OData endpoint | `https://my-s4.s4hana.cloud.sap` |
+| Alias | Optional override | `erp-dev-eu` |
+| Description | Optional notes | "EU development server" |
+
+### Base URL Format
+
+The base URL should point to your SAP gateway:
+
+```
+# S/4HANA Cloud
+https://my123456.s4hana.cloud.sap
+
+# On-Premise
+https://sap-gateway.company.com:8443
+
+# SAP BTP
+https://my-service.cfapps.eu10.hana.ondemand.com
+```
+
+<Info>
+  Don't include the OData service path in the base URL. The platform appends the service path automatically.
+</Info>
+
+## Authentication
+
+Each instance can have its own authentication configuration, or inherit from the system level.
+
+### Authentication Types
+
+| Type | Description |
+|------|-------------|
+| **Basic** | Username and password |
+| **OAuth 2.0** | Client credentials flow |
+| **API Key** | Custom header authentication |
+| **Custom Headers** | Any custom headers |
+| **None** | No authentication (public APIs) |
+
+### Configuring Authentication
+
+1. Go to the instance settings
+2. Click **Configure Authentication**
+3. Select the authentication type
+4. Enter credentials
+
+<Warning>
+  Credentials are encrypted before storage. They cannot be viewed after saving—only updated or removed.
+</Warning>
+
+### Authentication Inheritance
+
+Authentication can be configured at multiple levels:
+
+1. **Instance Level**: Specific to one environment
+2. **System Service Level**: Shared across instances for a service
+3. **Instance Default**: Fallback for the instance
+
+The platform uses the most specific configuration available.
+
+## Managing Instances
+
+### Edit Instance
+
+1. Navigate to the instance
+2. Update fields as needed
+3. Click **Save**
+
+### Delete Instance
+
+<Warning>
+  Deleting an instance removes all service bindings and breaks any API keys that only have access to this instance.
+</Warning>
+
+1. Navigate to the instance
+2. Click **Delete Instance**
+3. Confirm the deletion
+
+## Connection String
+
+Each instance has a connection string for the SDK:
+
+```typescript
+// Using system alias (uses highest-priority instance)
+const client = new S4Kit({
+  apiKey: 'sk_live_...',
+  connection: 'erp-prod'
+});
+
+// Using specific instance alias
+const devClient = new S4Kit({
+  apiKey: 'sk_live_...',
+  connection: 'erp-dev'
+});
+```
+
+## Health Monitoring
+
+The dashboard shows instance health status:
+
+| Status | Description |
+|--------|-------------|
+| **Healthy** | Connection successful |
+| **Degraded** | Slow response times |
+| **Unavailable** | Cannot connect |
+| **Unknown** | Not yet tested |
+
+Click **Test Connection** to verify an instance is reachable.
+
+## Best Practices
+
+### URL Consistency
+
+Keep base URLs consistent across environments:
+
+```
+Production:  https://prod.s4hana.cloud.sap
+Quality:     https://qa.s4hana.cloud.sap
+Development: https://dev.s4hana.cloud.sap
+```
+
+### Credential Rotation
+
+Regularly rotate SAP credentials:
+
+1. Create new credentials in SAP
+2. Update the instance configuration
+3. Verify connectivity
+4. Disable old credentials in SAP
+
+### Testing New Instances
+
+Before using a new instance:
+
+1. Configure authentication
+2. Click **Test Connection**
+3. Bind at least one service
+4. Test with a simple API call
+
+```typescript
+// Quick connectivity test
+const test = await client.sap.A_BusinessPartner.list({
+  connection: 'new-instance',
+  top: 1
+});
+```

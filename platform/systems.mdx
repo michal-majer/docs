@@ -1,0 +1,128 @@
+---
+title: "Systems"
+description: "Register and manage SAP systems"
+icon: "database"
+---
+
+## Overview
+
+A System in S4Kit represents an SAP landscape—a collection of related environments (instances) that share the same SAP system configuration.
+
+## System Types
+
+S4Kit supports different SAP system types:
+
+| Type | Description |
+|------|-------------|
+| **S/4HANA Cloud Public** | SAP S/4HANA Cloud, public edition |
+| **S/4HANA Cloud Private** | SAP S/4HANA Cloud, private edition |
+| **S/4HANA On-Premise** | On-premise S/4HANA installation |
+| **SAP BTP** | SAP Business Technology Platform services |
+| **Other** | Other SAP or compatible systems |
+
+## Creating a System
+
+### Via Dashboard
+
+1. Navigate to **Systems** in the sidebar
+2. Click **Add System**
+3. Fill in the system details:
+   - **Name**: A friendly name (e.g., "Production ERP")
+   - **Alias**: A short identifier used in code (e.g., "erp-prod")
+   - **Type**: Select the SAP system type
+   - **Description**: Optional description
+
+### System Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| Name | Display name | "Production S/4HANA" |
+| Alias | Code identifier | "erp-prod" |
+| Type | SAP system type | "s4_public" |
+| Description | Optional notes | "Main production ERP" |
+
+## System Alias
+
+The alias is used in your SDK code to reference the system:
+
+```typescript
+const client = new S4Kit({
+  apiKey: 'sk_live_...',
+  connection: 'erp-prod'  // This is the system alias
+});
+```
+
+<Info>
+  Choose meaningful aliases that are easy to remember and type. Use lowercase letters, numbers, and hyphens.
+</Info>
+
+## Managing Systems
+
+### Edit System
+
+Update system details from the dashboard:
+
+1. Go to **Systems**
+2. Click on the system to edit
+3. Update the fields
+4. Click **Save**
+
+### Delete System
+
+<Warning>
+  Deleting a system removes all associated instances, services, and API key access configurations. This action cannot be undone.
+</Warning>
+
+1. Go to **Systems**
+2. Click on the system
+3. Click **Delete System**
+4. Confirm the deletion
+
+## Best Practices
+
+### Naming Conventions
+
+Use consistent naming that reflects your SAP landscape:
+
+| System Name | Alias | Description |
+|-------------|-------|-------------|
+| Production S/4HANA | erp-prod | Live production system |
+| Development S/4HANA | erp-dev | Development environment |
+| QA S/4HANA | erp-qa | Quality assurance |
+| Sandbox | erp-sandbox | Testing and exploration |
+
+### One System Per Landscape
+
+Create one S4Kit system per SAP landscape. For example, if you have:
+- A production ERP
+- A development ERP
+- A separate CRM system
+
+Create three S4Kit systems, each with their own instances.
+
+### Multi-Region Setup
+
+For global deployments with regional SAP systems:
+
+| System Name | Alias | Region |
+|-------------|-------|--------|
+| ERP Americas | erp-americas | US |
+| ERP EMEA | erp-emea | EU |
+| ERP APAC | erp-apac | Singapore |
+
+## System Configuration
+
+After creating a system, you'll need to:
+
+1. **Add Instances**: Configure the environment endpoints
+2. **Bind Services**: Select which OData services to expose
+3. **Configure Authentication**: Set up SAP credentials
+
+<CardGroup cols={2}>
+  <Card title="Instances" icon="layer-group" href="/platform/instances">
+    Configure system environments
+  </Card>
+  <Card title="Services" icon="cube" href="/platform/services">
+    Bind OData services
+  </Card>
+</CardGroup>

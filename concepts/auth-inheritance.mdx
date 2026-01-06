@@ -1,0 +1,244 @@
+---
+title: "Authentication Inheritance"
+description: "How authentication flows through the system"
+icon: "arrow-down-up-across-line"
+---
+
+## Overview
+
+S4Kit uses an inheritance model for authentication, allowing you to configure credentials at different levels. The most specific configuration always wins.
+
+## Inheritance Chain
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MOST SPECIFIC                             │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │           Instance Service Authentication                ││
+│  │                                                          ││
+│  │  Auth configured for a specific service on a specific   ││
+│  │  instance. Example: OAuth for API_SALES_ORDER on prod   ││
+│  └────────────────────────┬────────────────────────────────┘│
+│                           │ Falls back to                    │
+│  ┌────────────────────────▼────────────────────────────────┐│
+│  │           System Service Authentication                  ││
+│  │                                                          ││
+│  │  Auth configured for a service across all instances.    ││
+│  │  Example: OAuth for API_SALES_ORDER system-wide         ││
+│  └────────────────────────┬────────────────────────────────┘│
+│                           │ Falls back to                    │
+│  ┌────────────────────────▼────────────────────────────────┐│
+│  │           Instance Default Authentication                ││
+│  │                                                          ││
+│  │  Default auth for an instance, used when no service-    ││
+│  │  specific auth is configured.                           ││
+│  └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│                    LEAST SPECIFIC                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Configuration Levels
+
+### Instance Default
+
+The base authentication for an instance:
+
+```yaml
+# erp-prod instance default
+instance: erp-prod
+type: basic
+username: TECH_USER
+password: ********
+```
+
+All services use this unless overridden.
+
+### System Service
+
+Override for a specific service across all instances:
+
+```yaml
+# API_SALES_ORDER for all instances of "ERP" system
+system: ERP
+service: API_SALES_ORDER_SRV
+type: oauth2
+client_id: SALES_CLIENT
+client_secret: ********
+token_url: https://auth.sap/token
+```
+
+### Instance Service
+
+Override for a specific service on a specific instance:
+
+```yaml
+# API_BUSINESS_PARTNER on erp-prod only
+instance: erp-prod
+service: API_BUSINESS_PARTNER
+type: oauth2
+client_id: BP_PROD_CLIENT
+client_secret: ********
+token_url: https://prod.sap/oauth/token
+```
+
+## Resolution Example
+
+Consider this configuration:
+
+```
+System: ERP
+├── Instance: erp-prod
+│   ├── Default: Basic (user: PROD_USER)
+│   ├── API_BUSINESS_PARTNER: OAuth (client: BP_PROD)
+│   └── API_SALES_ORDER: (no override)
+│
+├── Instance: erp-dev
+│   ├── Default: Basic (user: DEV_USER)
+│   └── (no service overrides)
+│
+└── System Service: API_SALES_ORDER
+    └── OAuth (client: SALES_GLOBAL)
+```
+
+### Resolution Results
+
+| Instance | Service | Auth Used | Reason |
+|----------|---------|-----------|--------|
+| erp-prod | API_BUSINESS_PARTNER | OAuth (BP_PROD) | Instance Service override |
+| erp-prod | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
+| erp-prod | API_PRODUCT | Basic (PROD_USER) | Instance Default |
+| erp-dev | API_BUSINESS_PARTNER | Basic (DEV_USER) | Instance Default |
+| erp-dev | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
+| erp-dev | API_PRODUCT | Basic (DEV_USER) | Instance Default |
+
+## Use Cases
+
+### Different Users per Environment
+
+```yaml
+# Production - restricted user
+instance: erp-prod
+default:
+  type: basic
+  username: S4KIT_PROD_RO
+  password: ********
+
+# Development - full access user
+instance: erp-dev
+default:
+  type: basic
+  username: S4KIT_DEV_FULL
+  password: ********
+```
+
+### OAuth for Sensitive Services
+
+```yaml
+# Use stricter OAuth for sales operations
+system: ERP
+service: API_SALES_ORDER_SRV
+type: oauth2
+client_id: SALES_OAUTH
+client_secret: ********
+token_url: https://sap.company.com/oauth/token
+scope: API_SALES_ORDER_FULL
+
+# Other services use basic auth
+instance: erp-prod
+default:
+  type: basic
+  username: GENERAL_USER
+  password: ********
+```
+
+### Third-Party Integration Service
+
+```yaml
+# Custom service needs API key authentication
+instance: erp-prod
+service: Z_CUSTOM_INTEGRATION
+type: api_key
+header_name: X-Integration-Key
+header_value: ********
+```
+
+## Best Practices
+
+### Start Simple
+
+Begin with instance defaults:
+
+```yaml
+instance: erp-prod
+default:
+  type: basic
+  username: S4KIT_USER
+  password: ********
+```
+
+Add service-specific auth only when needed.
+
+### Use OAuth When Available
+
+OAuth provides:
+- Automatic token refresh
+- Better security (no password transmission)
+- Granular scopes
+
+### Separate by Security Level
+
+```
+Production: OAuth with restricted scopes
+Quality: OAuth with full scopes
+Development: Basic auth for simplicity
+Sandbox: Basic auth
+```
+
+### Document Your Configuration
+
+Keep a record of:
+- Which services use which auth
+- Why overrides exist
+- Credential owners
+
+## Troubleshooting
+
+### Wrong Credentials Used
+
+**Symptom**: Request uses unexpected authentication
+
+**Solution**: Check inheritance chain
+1. Is there an Instance Service config?
+2. Is there a System Service config?
+3. What is the Instance Default?
+
+### OAuth Token Issues
+
+**Symptom**: Token refresh fails for some services
+
+**Solution**: Verify OAuth config at correct level
+- Check token URL is correct
+- Verify scopes are appropriate
+- Ensure client has access to service
+
+### Authentication Mismatch
+
+**Symptom**: 401 errors after configuration change
+
+**Solution**: Check for shadowing
+- Service-level config may override your change
+- Clear Redis cache after changes
+- Test with explicit service parameter
+
+## Viewing Effective Auth
+
+In the dashboard, view the effective authentication:
+
+1. Go to **Instances** → Select instance
+2. Click **Services**
+3. Each service shows its effective auth source:
+   - "Instance Service" - service-specific override
+   - "System Service" - system-wide service config
+   - "Instance Default" - fallback to instance auth

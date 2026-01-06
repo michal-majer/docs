@@ -1,0 +1,240 @@
+---
+title: "Architecture"
+description: "Understanding how S4Kit works under the hood"
+icon: "sitemap"
+---
+
+## Overview
+
+S4Kit is designed as a secure proxy layer between your applications and SAP S/4HANA systems. This architecture provides security, observability, and simplified authentication.
+
+## System Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                         Client Side                               │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │                     Your Application                         │ │
+│  │  ┌─────────────┐   ┌─────────────┐   ┌─────────────────┐   │ │
+│  │  │   Next.js   │   │   Express   │   │   Python/etc    │   │ │
+│  │  └──────┬──────┘   └──────┬──────┘   └────────┬────────┘   │ │
+│  │         │                 │                    │            │ │
+│  │         └────────────────┬┴───────────────────┘            │ │
+│  │                          │                                  │ │
+│  │                   ┌──────▼──────┐                          │ │
+│  │                   │   S4Kit     │                          │ │
+│  │                   │    SDK      │                          │ │
+│  │                   └──────┬──────┘                          │ │
+│  └──────────────────────────┼──────────────────────────────────┘ │
+└──────────────────────────────┼──────────────────────────────────┘
+                               │
+                               │ HTTPS + API Key
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      S4Kit Platform                               │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Proxy Service                          │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌──────────────────┐   │   │
+│  │  │   Auth     │  │   Rate     │  │     Request      │   │   │
+│  │  │ Middleware │─▶│  Limiter   │─▶│     Router       │   │   │
+│  │  └────────────┘  └────────────┘  └────────┬─────────┘   │   │
+│  │                                            │              │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────▼─────────┐   │   │
+│  │  │   Logger   │◀─│   Error    │◀─│   SAP Proxy      │   │   │
+│  │  │            │  │  Handler   │  │                  │   │   │
+│  │  └────────────┘  └────────────┘  └────────┬─────────┘   │   │
+│  └───────────────────────────────────────────┼──────────────┘   │
+│                                               │                  │
+│  ┌────────────┐  ┌────────────┐  ┌───────────▼────────────┐    │
+│  │ PostgreSQL │  │   Redis    │  │   Credential Store     │    │
+│  │  (Data)    │  │  (Cache)   │  │   (Encrypted)          │    │
+│  └────────────┘  └────────────┘  └───────────┬────────────┘    │
+└──────────────────────────────────────────────┼──────────────────┘
+                                               │
+                                               │ SAP Auth
+                                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                     SAP S/4HANA Systems                          │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────┐ │
+│  │  Sandbox   │  │    Dev     │  │  Quality   │  │Production │ │
+│  └────────────┘  └────────────┘  └────────────┘  └───────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+## Component Overview
+
+### SDK (Client)
+
+The TypeScript SDK that runs in your application:
+
+- **Dynamic Proxy**: Creates entity handlers at runtime
+- **Query Builder**: Constructs OData query strings
+- **HTTP Client**: Handles requests with retry logic
+- **Type Support**: Full TypeScript definitions
+
+### Proxy Service
+
+The core request processing engine:
+
+- **Authentication**: Validates API keys
+- **Rate Limiting**: Enforces request limits
+- **Routing**: Directs requests to correct SAP instance
+- **SAP Proxy**: Authenticates to SAP and forwards requests
+- **Response Processing**: Normalizes OData responses
+- **Logging**: Records all requests
+
+### Data Storage
+
+Persistent data storage:
+
+- **PostgreSQL**: Configuration, API keys, logs
+- **Redis**: Rate limit counters, token cache
+- **Encrypted Store**: SAP credentials (libsodium)
+
+## Request Flow
+
+### 1. SDK Request
+
+Your application calls the SDK:
+
+```typescript
+await client.sap.A_BusinessPartner.list({ top: 10 });
+```
+
+### 2. Request Preparation
+
+The SDK:
+1. Resolves the entity to an OData path
+2. Builds query parameters
+3. Adds authentication header (API key)
+4. Sends HTTP request to platform
+
+### 3. API Key Validation
+
+The platform:
+1. Extracts API key from header
+2. Looks up key in database (cached in Redis)
+3. Verifies key is valid and not revoked
+4. Loads key permissions
+
+### 4. Permission Check
+
+The platform verifies:
+1. Key can access the requested instance
+2. Key can access the requested service
+3. Key can perform the requested operation on the entity
+
+### 5. Rate Limit Check
+
+The platform:
+1. Checks per-minute counter (Redis)
+2. Checks per-day counter (Redis)
+3. Returns 429 if limits exceeded
+4. Increments counters if allowed
+
+### 6. SAP Authentication
+
+The platform:
+1. Loads SAP credentials (decrypts from store)
+2. For OAuth: checks token cache, refreshes if needed
+3. Prepares authentication headers
+
+### 7. SAP Request
+
+The platform:
+1. Constructs full SAP URL
+2. Adds authentication headers
+3. Forwards request to SAP
+4. Handles CSRF tokens for mutations
+
+### 8. Response Processing
+
+The platform:
+1. Parses OData response
+2. Extracts entity data from `d.results` or `value`
+3. Handles OData errors
+4. Strips metadata (optional)
+
+### 9. Logging
+
+The platform records:
+1. Request details
+2. Response status and timing
+3. Any errors
+4. Key and instance information
+
+### 10. Response
+
+The SDK receives clean JSON data.
+
+## Security Architecture
+
+### API Key Security
+
+```
+Full Key: sk_live_abc123...xyz789
+         ↓
+Stored:  hash(key), prefix: "sk_live_abc1", last4: "z789"
+```
+
+- Full keys are never stored
+- Only hashed values in database
+- Prefix and last 4 chars for identification
+
+### Credential Encryption
+
+```
+Credentials → libsodium.encrypt(key) → Encrypted blob → Database
+```
+
+- 256-bit encryption keys
+- Encryption key stored separately
+- Credentials cannot be decrypted without key
+
+### Network Security
+
+- All traffic over TLS 1.3
+- API keys in Authorization header
+- SAP credentials never sent to SDK
+
+## Scalability
+
+### Horizontal Scaling
+
+```
+┌─────────────┐     ┌─────────────────────┐
+│ Load        │────▶│ Proxy Instance 1    │
+│ Balancer    │────▶│ Proxy Instance 2    │────▶ SAP
+│             │────▶│ Proxy Instance N    │
+└─────────────┘     └─────────────────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    │  Shared State     │
+                    │  (Redis + PG)     │
+                    └───────────────────┘
+```
+
+### Caching Strategy
+
+| Data | Cache | TTL |
+|------|-------|-----|
+| API Keys | Redis | 5 min |
+| OAuth Tokens | Redis | Until expiry |
+| Rate Limits | Redis | 1 min / 1 day |
+| Service Config | Memory | 1 hour |
+
+## High Availability
+
+### Failover
+
+- Multiple proxy instances
+- Database replication
+- Redis clustering
+- Health checks
+
+### Monitoring
+
+- Request metrics
+- Error rates
+- Response times
+- Resource utilization
