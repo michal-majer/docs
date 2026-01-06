@@ -112,18 +112,5 @@
     "socials": {
       "github": "https://github.com/michal-majer/s4kit"
     }
-  },
-  "fonts": {
-    "headings": {
-      "family": "Plus Jakarta Sans",
-      "weight": 700
-    },
-    "body": {
-      "family": "Plus Jakarta Sans",
-      "weight": 400
-    }
-  },
-  "codeBlock": {
-    "theme": "github-dark"
   }
 }
