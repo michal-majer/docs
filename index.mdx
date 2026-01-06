@@ -1,96 +1,215 @@
 ---
-title: "S4Kit Documentation"
-description: "A lightweight, type-safe SDK and platform for SAP S/4HANA integration"
+title: "S4Kit"
+sidebarTitle: "Introduction"
+description: "The modern way to integrate with SAP S/4HANA"
 ---
 
-## What is S4Kit?
+<Note>
+**S4Kit is currently in beta.** We're working with early adopters to refine the developer experience. [Get early access →](https://app.s4kit.com)
+</Note>
 
-S4Kit is a developer-friendly SDK and platform that simplifies SAP S/4HANA integration. Instead of wrestling with complex SAP infrastructure, you get a clean TypeScript API with API key authentication—similar to working with Stripe.
+## SAP integration shouldn't be this hard
 
-<CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get started with S4Kit in 5 minutes.
-  </Card>
-  <Card title="SDK Reference" icon="code" href="/sdk/installation">
-    Learn how to use the SDK for SAP integration.
-  </Card>
-  <Card title="Platform Guide" icon="server" href="/platform/overview">
-    Configure SAP systems, API keys, and permissions.
-  </Card>
-  <Card title="API Reference" icon="terminal" href="/api-reference/introduction">
-    Explore the Admin API endpoints.
-  </Card>
-</CardGroup>
+Connecting to SAP S/4HANA typically means weeks of setup, complex authentication flows, and fighting with OData quirks. S4Kit changes that.
 
-## Key Features
-
-<CardGroup cols={2}>
-  <Card title="Type-Safe SDK" icon="shield-check">
-    Full TypeScript support with generated types from SAP OData metadata.
-  </Card>
-  <Card title="Simple Authentication" icon="key">
-    Stripe-like API keys instead of complex SAP authentication.
-  </Card>
-  <Card title="Multi-Environment" icon="layers">
-    Support for sandbox, dev, quality, preprod, and production environments.
-  </Card>
-  <Card title="Request Logging" icon="chart-line">
-    Complete audit trail with performance metrics and error tracking.
-  </Card>
-</CardGroup>
-
-## Quick Example
-
+<Tabs>
+  <Tab title="Without S4Kit">
 ```typescript
+// The traditional way: 50+ lines of boilerplate
+import axios from 'axios';
+
+// Step 1: Get CSRF token
+const tokenResponse = await axios.get(
+  'https://sap-server.company.com/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner',
+  {
+    headers: {
+      'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
+      'x-csrf-token': 'Fetch',
+      'sap-client': '100',
+    }
+  }
+);
+const csrfToken = tokenResponse.headers['x-csrf-token'];
+const cookies = tokenResponse.headers['set-cookie'];
+
+// Step 2: Make the actual request
+const response = await axios.get(
+  'https://sap-server.company.com/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner',
+  {
+    params: {
+      '$select': 'BusinessPartner,BusinessPartnerName',
+      '$filter': "BusinessPartnerCategory eq '1'",
+      '$top': 10
+    },
+    headers: {
+      'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
+      'x-csrf-token': csrfToken,
+      'Cookie': cookies.join('; '),
+      'sap-client': '100',
+      'Accept': 'application/json',
+    }
+  }
+);
+
+// Step 3: Parse the weird OData response format
+const partners = response.data.d.results;
+```
+  </Tab>
+  <Tab title="With S4Kit">
+```typescript
+// The S4Kit way: Clean, type-safe, done.
 import { S4Kit } from 's4kit';
 
 const client = new S4Kit({
-  apiKey: 'sk_live_...',
+  apiKey: process.env.S4KIT_API_KEY,
   connection: 'production'
 });
 
-// List business partners with filtering
 const partners = await client.sap.A_BusinessPartner.list({
   select: ['BusinessPartner', 'BusinessPartnerName'],
   filter: "BusinessPartnerCategory eq '1'",
   top: 10
 });
-
-// Create a new sales order
-const order = await client.sap.A_SalesOrder.create({
-  SalesOrderType: 'OR',
-  SoldToParty: '10100001',
-  // ...
-});
 ```
+  </Tab>
+</Tabs>
 
-## Architecture Overview
+---
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Your App  │────▶│  S4Kit Proxy │────▶│  SAP S/4    │
-│  (SDK)      │◀────│  (Platform)  │◀────│  HANA       │
-└─────────────┘     └──────────────┘     └─────────────┘
-       │                    │
-       │                    ▼
-       │            ┌──────────────┐
-       └───────────▶│   Dashboard  │
-                    │  (Admin UI)  │
-                    └──────────────┘
-```
+## Built for developers who value their time
 
-The platform acts as a secure proxy between your application and SAP systems, handling authentication, rate limiting, and access control.
+<CardGroup cols={3}>
+  <Card title="5-Minute Setup" icon="rocket">
+    Install the SDK, add your API key, start querying SAP. No SAP expertise required.
+  </Card>
+  <Card title="Type-Safe" icon="shield-check">
+    Full TypeScript support. Generate types from your SAP metadata. Catch errors at compile time.
+  </Card>
+  <Card title="Stripe-like DX" icon="sparkles">
+    Simple API keys instead of certificates. Clear error messages. Predictable behavior.
+  </Card>
+  <Card title="Multi-Environment" icon="layers">
+    Sandbox → Dev → QA → Production. Same code, different connection string.
+  </Card>
+  <Card title="Observable" icon="chart-line">
+    Every request logged. Performance metrics. Error tracking. Full audit trail.
+  </Card>
+  <Card title="Enterprise Ready" icon="building">
+    SOC 2 compliant infrastructure. Encrypted credentials. Granular permissions.
+  </Card>
+</CardGroup>
 
-## Next Steps
+---
+
+## How it works
 
 <Steps>
-  <Step title="Install the SDK">
-    Install S4Kit in your project with `npm install s4kit`.
+  <Step title="You call the SDK" icon="code">
+    Your app uses the S4Kit SDK with a simple API key. No SAP credentials in your code.
+    ```typescript
+    await client.sap.A_SalesOrder.list({ top: 10 })
+    ```
   </Step>
-  <Step title="Get your API key">
-    Sign up for the platform and generate an API key.
+  <Step title="We handle the complexity" icon="shield">
+    S4Kit authenticates to SAP, manages tokens, handles CSRF, retries on failure.
   </Step>
-  <Step title="Connect to SAP">
-    Configure your SAP systems and start making requests.
+  <Step title="SAP responds" icon="database">
+    Your SAP system processes the request and returns data through our secure proxy.
+  </Step>
+  <Step title="You get clean JSON" icon="check">
+    No OData wrapper objects. No `d.results`. Just the data you asked for.
   </Step>
 </Steps>
+
+---
+
+## Everything you need
+
+<AccordionGroup>
+  <Accordion title="Full CRUD Operations" icon="pen-to-square">
+    Create, read, update, and delete any SAP entity. Batch operations. Deep inserts. Navigation properties.
+    ```typescript
+    // Create
+    const order = await client.sap.A_SalesOrder.create({ ... });
+
+    // Read
+    const orders = await client.sap.A_SalesOrder.list({ top: 100 });
+
+    // Update
+    await client.sap.A_SalesOrder.update(orderId, { Status: 'C' });
+
+    // Delete
+    await client.sap.A_SalesOrder.delete(orderId);
+    ```
+  </Accordion>
+  <Accordion title="Powerful Querying" icon="filter">
+    Full OData query support with a clean API. Filter, sort, paginate, expand relations.
+    ```typescript
+    const orders = await client.sap.A_SalesOrder.list({
+      select: ['SalesOrder', 'TotalNetAmount', 'SoldToParty'],
+      filter: "CreationDate ge 2024-01-01 and TotalNetAmount gt 10000",
+      orderBy: 'CreationDate desc',
+      expand: ['to_Item', 'to_Partner'],
+      top: 50
+    });
+    ```
+  </Accordion>
+  <Accordion title="Type Generation" icon="wand-magic-sparkles">
+    Generate TypeScript types from your SAP OData metadata. Full autocomplete in your IDE.
+    ```bash
+    npx s4kit generate-types -c production -o ./types/sap.d.ts
+    ```
+  </Accordion>
+  <Accordion title="Granular Permissions" icon="lock">
+    Control exactly which entities and operations each API key can access.
+    ```yaml
+    production:
+      API_BUSINESS_PARTNER:
+        A_BusinessPartner: [list, get]
+        A_BusinessPartnerAddress: [list, get]
+      API_SALES_ORDER_SRV:
+        A_SalesOrder: [list, get, create, update]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Start building in minutes
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="play" href="/quickstart">
+    Install the SDK and make your first SAP request in under 5 minutes.
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/sdk/installation">
+    Complete guide to all SDK features, from basic queries to advanced patterns.
+  </Card>
+  <Card title="Platform Setup" icon="gear" href="/platform/overview">
+    Configure your SAP systems, manage API keys, and set up environments.
+  </Card>
+  <Card title="API Reference" icon="terminal" href="/api-reference/introduction">
+    REST API documentation for programmatic platform management.
+  </Card>
+</CardGroup>
+
+---
+
+## Trusted by teams building on SAP
+
+<Tabs>
+  <Tab title="For Startups">
+    Skip the months of SAP learning curve. Ship your integration in days, not quarters. Focus on your product, not SAP plumbing.
+  </Tab>
+  <Tab title="For Enterprise">
+    Standardize SAP access across teams. Centralized audit logs. Granular access control. No more credential sprawl.
+  </Tab>
+  <Tab title="For Consultants">
+    Deliver SAP integrations faster. Reusable patterns. Happy clients. More projects.
+  </Tab>
+</Tabs>
+
+<br />
+
+<Card title="Ready to simplify your SAP integration?" icon="arrow-right" href="/quickstart">
+  Get started with S4Kit →
+</Card>
