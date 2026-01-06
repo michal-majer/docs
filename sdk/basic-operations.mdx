@@ -245,13 +245,13 @@ Use a different SAP instance for a specific request:
 ```typescript
 // Use sandbox for testing
 const testPartners = await client.sap.A_BusinessPartner.list({
-  connection: 'erp-sandbox',
+  connection: 'sandbox',
   top: 10
 });
 
 // Use production for real data
 const prodPartners = await client.sap.A_BusinessPartner.list({
-  connection: 'erp-prod',
+  connection: 'production',
   top: 10
 });
 ```

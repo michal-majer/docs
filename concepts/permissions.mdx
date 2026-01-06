@@ -49,7 +49,7 @@ Each entity can have these operations:
 ```yaml
 api_key: Backend Service
 permissions:
-  erp-prod:                          # Instance
+  production:                          # Instance
     API_BUSINESS_PARTNER:            # Service
       A_BusinessPartner:             # Entity
         - list                       # Operations
@@ -64,7 +64,7 @@ permissions:
 api_key: Full Access Key
 permissions:
   # Production - Read only
-  erp-prod:
+  production:
     API_BUSINESS_PARTNER:
       A_BusinessPartner:
         - list
@@ -82,7 +82,7 @@ permissions:
         - get
 
   # Development - Full access
-  erp-dev:
+  dev:
     API_BUSINESS_PARTNER:
       "*":                           # All entities
         - list
@@ -118,7 +118,7 @@ API_BUSINESS_PARTNER:
 Grant access to all services on an instance:
 
 ```yaml
-erp-dev:
+dev:
   "*":
     "*":
       - list
@@ -150,7 +150,7 @@ erp-dev:
 Request: `GET /A_BusinessPartner?$top=10`
 
 ```
-Instance: erp-prod ✓ (has access)
+Instance: production ✓ (has access)
 Service: API_BUSINESS_PARTNER ✓ (has access)
 Entity: A_BusinessPartner ✓ (has access)
 Operation: list ✓ (has list permission)
@@ -160,7 +160,7 @@ Operation: list ✓ (has list permission)
 Request: `DELETE /A_BusinessPartner('10100001')`
 
 ```
-Instance: erp-prod ✓
+Instance: production ✓
 Service: API_BUSINESS_PARTNER ✓
 Entity: A_BusinessPartner ✓
 Operation: delete ✗ (no delete permission)
@@ -175,7 +175,7 @@ Operation: delete ✗ (no delete permission)
 {
   "error": {
     "code": "FORBIDDEN",
-    "message": "API key does not have access to instance 'erp-prod'"
+    "message": "API key does not have access to instance 'production'"
   }
 }
 ```
@@ -229,14 +229,14 @@ Different permissions per environment:
 
 ```yaml
 # Production - Read only
-erp-prod:
+production:
   API_BUSINESS_PARTNER:
     "*":
       - list
       - get
 
 # Development - Full access for testing
-erp-dev:
+dev:
   API_BUSINESS_PARTNER:
     "*":
       - list
@@ -251,7 +251,7 @@ erp-dev:
 ```yaml
 # Analytics key - Read only everywhere
 analytics_key:
-  erp-prod:
+  production:
     "*":
       "*":
         - list
@@ -259,7 +259,7 @@ analytics_key:
 
 # Integration key - Write access to specific entities
 integration_key:
-  erp-prod:
+  production:
     API_SALES_ORDER_SRV:
       A_SalesOrder:
         - list
@@ -281,7 +281,7 @@ Review API key permissions periodically:
 
 ```yaml
 permissions:
-  erp-prod:
+  production:
     "*":
       "*":
         - list
@@ -295,7 +295,7 @@ rate_limits:
 
 ```yaml
 permissions:
-  erp-prod:
+  production:
     API_SALES_ORDER_SRV:
       A_SalesOrder:
         - list
@@ -315,7 +315,7 @@ permissions:
 
 ```yaml
 permissions:
-  erp-prod:
+  production:
     API_BUSINESS_PARTNER:
       "*":
         - list
@@ -334,7 +334,7 @@ permissions:
 
 ```yaml
 permissions:
-  erp-sandbox:
+  sandbox:
     "*":
       "*":
         - list
@@ -342,7 +342,7 @@ permissions:
         - create
         - update
         - delete
-  erp-dev:
+  dev:
     "*":
       "*":
         - list

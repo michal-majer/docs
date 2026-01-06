@@ -35,7 +35,7 @@ import { S4Kit } from 's4kit';
 
 const client = new S4Kit({
   apiKey: 'sk_live_...',        // Required: Your API key
-  connection: 'erp-prod',        // Optional: Default SAP instance
+  connection: 'production',        // Optional: Default SAP instance
   baseUrl: 'https://api.s4kit.com', // Optional: Custom API URL
   service: 'API_BUSINESS_PARTNER' // Optional: Default OData service
 });
@@ -69,7 +69,7 @@ const client = new S4Kit({
 
 ```env
 S4KIT_API_KEY=sk_live_abc123...
-S4KIT_CONNECTION=erp-prod
+S4KIT_CONNECTION=production
 ```
 
 ## TypeScript Support
@@ -81,7 +81,7 @@ import { S4Kit, S4KitConfig, QueryOptions } from 's4kit';
 
 const config: S4KitConfig = {
   apiKey: process.env.S4KIT_API_KEY!,
-  connection: 'erp-prod'
+  connection: 'production'
 };
 
 const client = new S4Kit(config);
@@ -92,7 +92,7 @@ const client = new S4Kit(config);
 For full type safety with your SAP entities, use the CLI to generate types from OData metadata:
 
 ```bash
-npx s4kit generate-types --connection erp-prod --output ./src/types/sap.d.ts
+npx s4kit generate-types --connection production --output ./src/types/sap.d.ts
 ```
 
 Then use the types in your code:
@@ -114,12 +114,12 @@ You can create multiple client instances for different environments:
 ```typescript
 const prodClient = new S4Kit({
   apiKey: process.env.S4KIT_API_KEY,
-  connection: 'erp-prod'
+  connection: 'production'
 });
 
 const devClient = new S4Kit({
   apiKey: process.env.S4KIT_API_KEY,
-  connection: 'erp-dev'
+  connection: 'dev'
 });
 ```
 
@@ -128,11 +128,11 @@ Or override the connection per-request:
 ```typescript
 // Use production connection
 const prodOrders = await client.sap.A_SalesOrder.list({
-  connection: 'erp-prod'
+  connection: 'production'
 });
 
 // Use development connection
 const devOrders = await client.sap.A_SalesOrder.list({
-  connection: 'erp-dev'
+  connection: 'dev'
 });
 ```

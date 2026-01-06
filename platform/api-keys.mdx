@@ -67,7 +67,7 @@ Instance → Service → Entity → Operations
 ### Example Configuration
 
 ```yaml
-erp-prod:
+production:
   API_BUSINESS_PARTNER:
     A_BusinessPartner:
       - list
@@ -76,7 +76,7 @@ erp-prod:
       - list
       - get
 
-erp-dev:
+dev:
   API_BUSINESS_PARTNER:
     A_BusinessPartner:
       - list
@@ -91,7 +91,7 @@ erp-dev:
 Grant access to all entities in a service:
 
 ```yaml
-erp-prod:
+production:
   API_BUSINESS_PARTNER:
     "*":
       - list
@@ -237,7 +237,7 @@ For dashboards and reporting:
 
 ```yaml
 permissions:
-  erp-prod:
+  production:
     API_SALES_ORDER_SRV:
       A_SalesOrder: [list, get]
       A_SalesOrderItem: [list, get]
@@ -252,7 +252,7 @@ For application backends:
 
 ```yaml
 permissions:
-  erp-prod:
+  production:
     API_BUSINESS_PARTNER:
       "*": [list, get, create, update]
     API_SALES_ORDER_SRV:
@@ -268,7 +268,7 @@ For local development:
 
 ```yaml
 permissions:
-  erp-sandbox:
+  sandbox:
     "*":
       "*": [list, get, create, update, delete]
 rate_limits:

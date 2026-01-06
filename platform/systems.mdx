@@ -28,7 +28,7 @@ S4Kit supports different SAP system types:
 2. Click **Add System**
 3. Fill in the system details:
    - **Name**: A friendly name (e.g., "Production ERP")
-   - **Alias**: A short identifier used in code (e.g., "erp-prod")
+   - **Alias**: A short identifier used in code (e.g., "production")
    - **Type**: Select the SAP system type
    - **Description**: Optional description
 
@@ -37,7 +37,7 @@ S4Kit supports different SAP system types:
 | Field | Description | Example |
 |-------|-------------|---------|
 | Name | Display name | "Production S/4HANA" |
-| Alias | Code identifier | "erp-prod" |
+| Alias | Code identifier | "production" |
 | Type | SAP system type | "s4_public" |
 | Description | Optional notes | "Main production ERP" |
 
@@ -48,7 +48,7 @@ The alias is used in your SDK code to reference the system:
 ```typescript
 const client = new S4Kit({
   apiKey: 'sk_live_...',
-  connection: 'erp-prod'  // This is the system alias
+  connection: 'production'  // This is the system alias
 });
 ```
 
@@ -86,10 +86,10 @@ Use consistent naming that reflects your SAP landscape:
 
 | System Name | Alias | Description |
 |-------------|-------|-------------|
-| Production S/4HANA | erp-prod | Live production system |
-| Development S/4HANA | erp-dev | Development environment |
-| QA S/4HANA | erp-qa | Quality assurance |
-| Sandbox | erp-sandbox | Testing and exploration |
+| Production S/4HANA | production | Live production system |
+| Development S/4HANA | dev | Development environment |
+| QA S/4HANA | quality | Quality assurance |
+| Sandbox | sandbox | Testing and exploration |
 
 ### One System Per Landscape
 

@@ -46,8 +46,8 @@ S4Kit uses an inheritance model for authentication, allowing you to configure cr
 The base authentication for an instance:
 
 ```yaml
-# erp-prod instance default
-instance: erp-prod
+# production instance default
+instance: production
 type: basic
 username: TECH_USER
 password: ********
@@ -74,8 +74,8 @@ token_url: https://auth.sap/token
 Override for a specific service on a specific instance:
 
 ```yaml
-# API_BUSINESS_PARTNER on erp-prod only
-instance: erp-prod
+# API_BUSINESS_PARTNER on production only
+instance: production
 service: API_BUSINESS_PARTNER
 type: oauth2
 client_id: BP_PROD_CLIENT
@@ -89,12 +89,12 @@ Consider this configuration:
 
 ```
 System: ERP
-├── Instance: erp-prod
+├── Instance: production
 │   ├── Default: Basic (user: PROD_USER)
 │   ├── API_BUSINESS_PARTNER: OAuth (client: BP_PROD)
 │   └── API_SALES_ORDER: (no override)
 │
-├── Instance: erp-dev
+├── Instance: dev
 │   ├── Default: Basic (user: DEV_USER)
 │   └── (no service overrides)
 │
@@ -106,12 +106,12 @@ System: ERP
 
 | Instance | Service | Auth Used | Reason |
 |----------|---------|-----------|--------|
-| erp-prod | API_BUSINESS_PARTNER | OAuth (BP_PROD) | Instance Service override |
-| erp-prod | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
-| erp-prod | API_PRODUCT | Basic (PROD_USER) | Instance Default |
-| erp-dev | API_BUSINESS_PARTNER | Basic (DEV_USER) | Instance Default |
-| erp-dev | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
-| erp-dev | API_PRODUCT | Basic (DEV_USER) | Instance Default |
+| production | API_BUSINESS_PARTNER | OAuth (BP_PROD) | Instance Service override |
+| production | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
+| production | API_PRODUCT | Basic (PROD_USER) | Instance Default |
+| dev | API_BUSINESS_PARTNER | Basic (DEV_USER) | Instance Default |
+| dev | API_SALES_ORDER | OAuth (SALES_GLOBAL) | System Service override |
+| dev | API_PRODUCT | Basic (DEV_USER) | Instance Default |
 
 ## Use Cases
 
@@ -119,14 +119,14 @@ System: ERP
 
 ```yaml
 # Production - restricted user
-instance: erp-prod
+instance: production
 default:
   type: basic
   username: S4KIT_PROD_RO
   password: ********
 
 # Development - full access user
-instance: erp-dev
+instance: dev
 default:
   type: basic
   username: S4KIT_DEV_FULL
@@ -146,7 +146,7 @@ token_url: https://sap.company.com/oauth/token
 scope: API_SALES_ORDER_FULL
 
 # Other services use basic auth
-instance: erp-prod
+instance: production
 default:
   type: basic
   username: GENERAL_USER
@@ -157,7 +157,7 @@ default:
 
 ```yaml
 # Custom service needs API key authentication
-instance: erp-prod
+instance: production
 service: Z_CUSTOM_INTEGRATION
 type: api_key
 header_name: X-Integration-Key
@@ -171,7 +171,7 @@ header_value: ********
 Begin with instance defaults:
 
 ```yaml
-instance: erp-prod
+instance: production
 default:
   type: basic
   username: S4KIT_USER

@@ -26,7 +26,7 @@ s4kit <command> [options]
 Generate TypeScript type definitions from SAP OData metadata:
 
 ```bash
-npx s4kit generate-types --connection erp-prod --output ./src/types/sap.d.ts
+npx s4kit generate-types --connection production --output ./src/types/sap.d.ts
 ```
 
 #### Options
@@ -42,13 +42,13 @@ npx s4kit generate-types --connection erp-prod --output ./src/types/sap.d.ts
 
 ```bash
 # Generate types for all services
-npx s4kit generate-types -c erp-prod -o ./types/sap.d.ts
+npx s4kit generate-types -c production -o ./types/sap.d.ts
 
 # Generate types for a specific service
-npx s4kit generate-types -c erp-prod -s API_BUSINESS_PARTNER -o ./types/bp.d.ts
+npx s4kit generate-types -c production -s API_BUSINESS_PARTNER -o ./types/bp.d.ts
 
 # With explicit API key
-npx s4kit generate-types -c erp-prod -o ./types/sap.d.ts -k sk_live_abc123
+npx s4kit generate-types -c production -o ./types/sap.d.ts -k sk_live_abc123
 ```
 
 #### Generated Types
@@ -143,7 +143,7 @@ import type { S4KitConfig } from 's4kit';
 
 export default {
   apiKey: process.env.S4KIT_API_KEY,
-  defaultConnection: 'erp-prod',
+  defaultConnection: 'production',
   types: {
     output: './src/types/sap.d.ts',
     services: ['API_BUSINESS_PARTNER', 'API_SALES_ORDER_SRV']
@@ -172,7 +172,7 @@ The CLI respects these environment variables:
 ```bash
 # .env
 S4KIT_API_KEY=sk_live_abc123
-S4KIT_CONNECTION=erp-prod
+S4KIT_CONNECTION=production
 ```
 
 ## CI/CD Integration
@@ -200,7 +200,7 @@ jobs:
 
       - run: npm install
 
-      - run: npx s4kit generate-types -c erp-prod -o ./src/types/sap.d.ts
+      - run: npx s4kit generate-types -c production -o ./src/types/sap.d.ts
         env:
           S4KIT_API_KEY: ${{ secrets.S4KIT_API_KEY }}
 
@@ -221,7 +221,7 @@ generate-types:
   image: node:20
   script:
     - npm install
-    - npx s4kit generate-types -c erp-prod -o ./src/types/sap.d.ts
+    - npx s4kit generate-types -c production -o ./src/types/sap.d.ts
   variables:
     S4KIT_API_KEY: $S4KIT_API_KEY
   artifacts:
@@ -245,7 +245,7 @@ Verify your API key:
 ### Connection Not Found
 
 ```bash
-Error: Connection 'erp-prod' not found.
+Error: Connection 'production' not found.
 ```
 
 Verify the connection exists in your S4Kit dashboard and your API key has access to it.
@@ -253,7 +253,7 @@ Verify the connection exists in your S4Kit dashboard and your API key has access
 ### Service Not Found
 
 ```bash
-Error: Service 'API_BUSINESS_PARTNER' not found for connection 'erp-prod'.
+Error: Service 'API_BUSINESS_PARTNER' not found for connection 'production'.
 ```
 
 Check that:

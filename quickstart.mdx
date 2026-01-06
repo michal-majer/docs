@@ -38,7 +38,7 @@ import { S4Kit } from 's4kit';
 
 const client = new S4Kit({
   apiKey: process.env.S4KIT_API_KEY,  // Your API key
-  connection: 'erp-prod'               // Your SAP instance alias
+  connection: 'production'               // Your SAP instance alias
 });
 ```
 
@@ -118,7 +118,7 @@ async function main() {
   // Initialize client
   const client = new S4Kit({
     apiKey: process.env.S4KIT_API_KEY,
-    connection: 'erp-sandbox'
+    connection: 'sandbox'
   });
 
   try {

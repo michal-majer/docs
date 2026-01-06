@@ -30,7 +30,7 @@ const partners = await client.sap.A_BusinessPartner.list();
 
 // Override to use a specific instance
 const sandboxPartners = await client.sap.A_BusinessPartner.list({
-  connection: 'erp-sandbox'
+  connection: 'sandbox'
 });
 ```
 
@@ -46,7 +46,7 @@ const sandboxPartners = await client.sap.A_BusinessPartner.list({
 |-------|-------------|---------|
 | Environment | Instance level | Development |
 | Base URL | SAP OData endpoint | `https://my-s4.s4hana.cloud.sap` |
-| Alias | Optional override | `erp-dev-eu` |
+| Alias | Optional override | `dev-eu` |
 | Description | Optional notes | "EU development server" |
 
 ### Base URL Format
@@ -129,13 +129,13 @@ Each instance has a connection string for the SDK:
 // Using system alias (uses highest-priority instance)
 const client = new S4Kit({
   apiKey: 'sk_live_...',
-  connection: 'erp-prod'
+  connection: 'production'
 });
 
 // Using specific instance alias
 const devClient = new S4Kit({
   apiKey: 'sk_live_...',
-  connection: 'erp-dev'
+  connection: 'dev'
 });
 ```
 
