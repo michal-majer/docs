@@ -1,0 +1,226 @@
+---
+title: "Self-Hosting"
+description: "Run S4Kit on your own infrastructure"
+icon: "server"
+---
+
+Run S4Kit on your own infrastructure for full control over your data and deployment.
+
+## Prerequisites
+
+<CardGroup cols={2}>
+  <Card title="Docker" icon="docker">
+    Docker Desktop or Docker Engine with Compose support
+  </Card>
+  <Card title="Bun Runtime" icon="command">
+    Bun 1.3.4 or higher ([install](https://bun.sh))
+  </Card>
+</CardGroup>
+
+## Quick Setup
+
+<Steps>
+  <Step title="Clone and Install">
+    ```bash
+    git clone https://github.com/michal-majer/s4kit.git
+    cd s4kit
+    bun install
+    ```
+  </Step>
+
+  <Step title="Start Services">
+    ```bash
+    docker compose up -d postgres redis
+    ```
+
+    This starts PostgreSQL (port 5433) and Redis (port 6379) in containers.
+  </Step>
+
+  <Step title="Initialize Database">
+    ```bash
+    cd packages/platform/backend
+    bun x drizzle-kit push --force
+    bun run db:seed
+    bun run db:setup-admin
+    ```
+
+    Creates the database schema, seeds with 1,000+ SAP API definitions, and sets up your admin account.
+  </Step>
+
+  <Step title="Build for Production">
+    ```bash
+    cd ../..
+    bun run build
+    ```
+
+    Compiles all packages for production deployment.
+  </Step>
+
+  <Step title="Start Services">
+    Run in 3 separate terminals or use a process manager:
+
+    ```bash
+    # Terminal 1 - Backend API
+    cd packages/platform/backend && bun run start
+
+    # Terminal 2 - Frontend Dashboard
+    cd packages/platform/frontend && bun run start
+
+    # Terminal 3 - Proxy Service
+    cd packages/platform/proxy && bun run start
+    ```
+  </Step>
+
+  <Step title="Access Dashboard">
+    Open http://localhost:3001 in your browser.
+
+    Login with credentials from your `.env` file (default: `admin@example.com` / `changeme123`).
+  </Step>
+</Steps>
+
+## Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend | 3001 | Admin dashboard (Next.js) |
+| Backend | 3000 | Admin API (authentication, config) |
+| Proxy | 3002 | SDK proxy (handles SAP requests) |
+| PostgreSQL | 5433 | Database |
+| Redis | 6379 | Cache |
+
+## Configuration
+
+### Environment Variables
+
+The main configuration is in `packages/platform/backend/.env`:
+
+```bash
+# Server
+PORT=3000
+NODE_ENV=production
+
+# Database (matches docker-compose.yml)
+DATABASE_URL=postgresql://s4kit:s4kit_dev_password@localhost:5433/s4kit
+
+# Cache
+REDIS_URL=redis://localhost:6379
+
+# Security (generate your own!)
+ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
+BETTER_AUTH_SECRET=<generate with: openssl rand -base64 32>
+
+# Admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=changeme123
+ADMIN_NAME=Admin
+ORGANIZATION_NAME=My Company
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3001
+```
+
+<Warning>
+**Security**: Generate new values for `ENCRYPTION_KEY` and `BETTER_AUTH_SECRET` before deploying to production. Never use the example values!
+</Warning>
+
+### Proxy Configuration
+
+Create `packages/platform/proxy/.env`:
+
+```bash
+PORT=3002
+DATABASE_URL=postgresql://s4kit:s4kit_dev_password@localhost:5433/s4kit
+REDIS_URL=redis://localhost:6379
+ENCRYPTION_KEY=<same as backend>
+```
+
+## Production Deployment
+
+For production environments, see our [deployment guide](https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md) which covers:
+
+- Infrastructure setup (DNS, SSL, load balancing)
+- Database backups and replication
+- Security hardening
+- Monitoring and observability
+- High availability configuration
+
+<Card title="Advanced Deployment Guide" icon="rocket" href="https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md">
+  Complete production deployment checklist →
+</Card>
+
+## Process Management
+
+For production, use a process manager instead of running services in separate terminals:
+
+### Using PM2
+
+```bash
+# Install PM2
+npm install -g pm2
+
+# Start all services
+pm2 start packages/platform/backend/src/index.ts --name backend --interpreter ~/.bun/bin/bun
+pm2 start packages/platform/frontend/server.js --name frontend
+pm2 start packages/platform/proxy/src/index.ts --name proxy --interpreter ~/.bun/bin/bun
+
+# Save configuration
+pm2 save
+pm2 startup
+```
+
+### Using Docker Compose
+
+Alternatively, build Docker images for each service and orchestrate with Docker Compose or Kubernetes.
+
+## Database Management
+
+Common database tasks:
+
+```bash
+cd packages/platform/backend
+
+# View database with GUI
+bun run db:studio
+
+# Reset database (development only!)
+bun run db:reset
+
+# Push schema changes
+bun run db:push
+```
+
+## Monitoring
+
+### Health Checks
+
+- Backend: `curl http://localhost:3000/api/health`
+- Proxy: `curl http://localhost:3002/health`
+
+Both return JSON with status and resource metrics.
+
+### Logs
+
+Application logs are written to stdout. Use your preferred logging solution:
+
+- Docker: `docker compose logs -f`
+- PM2: `pm2 logs`
+- systemd: `journalctl -u s4kit-*`
+
+## Updating
+
+To update your self-hosted instance:
+
+```bash
+git pull
+bun install
+bun run build
+
+# Restart services with your process manager
+pm2 restart all
+```
+
+## Support
+
+- See [DEPLOY.md](https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md) for production deployment
+- Check [CLAUDE.md](https://github.com/michal-majer/s4kit/blob/main/CLAUDE.md) for architecture details
+- Open an [issue on GitHub](https://github.com/michal-majer/s4kit/issues) for bugs or questions

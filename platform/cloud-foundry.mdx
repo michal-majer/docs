@@ -1,0 +1,398 @@
+---
+title: "Cloud Foundry Deployment"
+description: "Deploy S4Kit to SAP BTP Cloud Foundry"
+icon: "cloud"
+---
+
+Deploy S4Kit to SAP BTP Cloud Foundry or any Cloud Foundry environment for scalable, production-ready hosting.
+
+## Prerequisites
+
+<CardGroup cols={3}>
+  <Card title="CF CLI" icon="terminal">
+    [Cloud Foundry CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) installed
+  </Card>
+  <Card title="CF Login" icon="user-check">
+    Logged in: `cf login`
+  </Card>
+  <Card title="Target Space" icon="location-dot">
+    Selected: `cf target -o <org> -s <space>`
+  </Card>
+</CardGroup>
+
+## Architecture
+
+S4Kit deploys as three separate Cloud Foundry applications:
+
+| Application | Purpose | Port | Instances |
+|------------|---------|------|-----------|
+| `s4kit-backend` | Admin API + Auth | 8080 | 1-3 |
+| `s4kit-proxy` | SDK proxy service | 8080 | 2-5 |
+| `s4kit-frontend` | Next.js dashboard | 8080 | 1-2 |
+
+All apps use the [Bun buildpack](https://github.com/michal-majer/cloudfoundry-buildpack-bun) for runtime.
+
+## Deployment Steps
+
+<Steps>
+  <Step title="Create Required Services">
+    S4Kit requires PostgreSQL, Redis, and a secrets store.
+
+    ### Option A: External Database (Railway, Neon, etc.)
+
+    ```bash
+    # PostgreSQL
+    cf create-user-provided-service s4kit-postgres -p '{
+      "uri":"postgresql://user:pass@host:port/database"
+    }'
+
+    # Redis
+    cf create-user-provided-service s4kit-redis -p '{
+      "uri":"redis://user:pass@host:port"
+    }'
+    ```
+
+    ### Option B: SAP BTP Managed Services
+
+    ```bash
+    # PostgreSQL on Hyperscaler
+    cf create-service postgresql-db standard s4kit-postgres
+
+    # Redis on Hyperscaler
+    cf create-service redis-cache standard s4kit-redis
+    ```
+
+    ### Create Secrets Service
+
+    Generate and store encryption keys:
+
+    ```bash
+    # Generate keys
+    ENCRYPTION_KEY=$(openssl rand -hex 32)
+    BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+
+    # Create service
+    cf create-user-provided-service s4kit-secrets -p "{
+      \"ENCRYPTION_KEY\": \"$ENCRYPTION_KEY\",
+      \"BETTER_AUTH_SECRET\": \"$BETTER_AUTH_SECRET\"
+    }"
+    ```
+
+    <Warning>
+    **Security**: Store these keys securely! They encrypt sensitive data and session tokens.
+    </Warning>
+  </Step>
+
+  <Step title="Deploy Backend">
+    ```bash
+    # From monorepo root
+    cf push -f packages/platform/backend/manifest.yml
+    ```
+
+    The backend automatically detects database and Redis from bound services.
+
+    **Optional Configuration:**
+
+    ```bash
+    # Set platform mode (default: selfhost)
+    # - selfhost: Single tenant, no signup
+    # - saas: Multi-tenant with signup enabled
+    cf set-env s4kit-backend MODE saas
+    cf restart s4kit-backend
+    ```
+
+    <Info>
+    `COOKIE_DOMAIN` and `BETTER_AUTH_URL` are auto-detected from `VCAP_APPLICATION`. No manual configuration needed.
+    </Info>
+  </Step>
+
+  <Step title="Deploy Proxy">
+    ```bash
+    # From monorepo root
+    cf push -f packages/platform/proxy/manifest.yml
+    ```
+
+    The proxy service reads connection details from bound services automatically.
+  </Step>
+
+  <Step title="Deploy Frontend">
+    The frontend requires a build step with the backend URL:
+
+    ```bash
+    cd packages/platform/frontend
+
+    # Set backend URL and deploy
+    NEXT_PUBLIC_API_URL=https://s4kit-backend.cfapps.us10-001.hana.ondemand.com ./deploy-cf.sh
+    ```
+
+    Replace the URL with your actual backend route.
+
+    The script:
+    1. Builds Next.js with standalone output
+    2. Packages for Node.js buildpack
+    3. Deploys to Cloud Foundry
+  </Step>
+
+  <Step title="Verify Deployment">
+    Check all apps are running:
+
+    ```bash
+    cf apps
+    ```
+
+    Test health endpoints:
+
+    ```bash
+    # Backend
+    curl https://s4kit-backend.YOUR-DOMAIN/health
+
+    # Proxy
+    curl https://s4kit-proxy.YOUR-DOMAIN/health/live
+
+    # Frontend
+    curl https://s4kit-frontend.YOUR-DOMAIN/
+    ```
+  </Step>
+</Steps>
+
+## Configuration Reference
+
+### Backend Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MODE` | `selfhost` | Platform mode: `selfhost` or `saas` |
+| `FRONTEND_URL` | (from manifest) | Frontend URL for CORS and redirects |
+| `COOKIE_DOMAIN` | auto-detected | Domain for cross-subdomain cookies |
+| `BETTER_AUTH_URL` | auto-detected | Backend URL for auth callbacks |
+
+### Secrets (from s4kit-secrets service)
+
+| Secret | Description | Generate With |
+|--------|-------------|---------------|
+| `ENCRYPTION_KEY` | 32-byte hex key for encrypting SAP credentials | `openssl rand -hex 32` |
+| `BETTER_AUTH_SECRET` | Secret for session token signing | `openssl rand -base64 32` |
+
+### Auto-Detected Configuration
+
+The apps automatically detect connection strings from `VCAP_SERVICES`:
+- PostgreSQL: `s4kit-postgres` service
+- Redis: `s4kit-redis` service
+- XSUAA: `s4kit-xsuaa` service (if bound)
+
+## Scaling
+
+Scale applications based on load:
+
+```bash
+# Scale proxy for more API throughput
+cf scale s4kit-proxy -i 3 -m 512M
+
+# Scale backend for more admin users
+cf scale s4kit-backend -i 2 -m 256M
+
+# Frontend typically needs 1 instance
+cf scale s4kit-frontend -i 1 -m 256M
+```
+
+## Monitoring
+
+### View Logs
+
+```bash
+# Stream logs
+cf logs s4kit-backend
+cf logs s4kit-proxy
+cf logs s4kit-frontend
+
+# Recent logs
+cf logs s4kit-backend --recent
+```
+
+### Health Checks
+
+| App | Endpoint | Response |
+|-----|----------|----------|
+| Backend | `/health` | JSON with DB/Redis status |
+| Proxy | `/health/live` | JSON with service health |
+| Frontend | `/` | HTML (Next.js page) |
+
+## SAP BTP Authentication (XSUAA)
+
+S4Kit supports SAP Identity Provider authentication via XSUAA.
+
+### Setup XSUAA
+
+XSUAA is configured in `packages/platform/backend/xs-security.json`. Create the service:
+
+```bash
+cd packages/platform/backend
+cf create-service xsuaa application s4kit-xsuaa -c xs-security.json
+```
+
+Then bind it in your manifest or push with service binding.
+
+### Role Templates
+
+XSUAA provides three role templates:
+
+| Role Template | S4Kit Role | Description |
+|---------------|------------|-------------|
+| `S4KitOwner` | owner | Full organization access |
+| `S4KitAdmin` | admin | Manage systems and API keys |
+| `S4KitDeveloper` | developer | Read-only dashboard access |
+
+Assign roles in **SAP BTP Cockpit → Security → Role Collections**.
+
+### Authentication Flow
+
+1. User clicks "Continue with SAP" on login page
+2. Redirected to SAP IDP for authentication
+3. After successful auth, user is created in S4Kit with their organization
+4. Admin can adjust roles via S4Kit dashboard
+
+## Updating Routes
+
+Edit manifest files to change application routes:
+
+```yaml
+# packages/platform/backend/manifest.yml
+routes:
+  - route: your-backend.cfapps.your-region.hana.ondemand.com
+```
+
+After changing routes:
+1. Update `FRONTEND_URL` in backend manifest
+2. Rebuild frontend with new `NEXT_PUBLIC_API_URL`
+3. Update `COOKIE_DOMAIN` if domain changes
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cannot find module errors" icon="exclamation-triangle">
+    The Bun buildpack caches `node_modules`. Clear cache:
+
+    ```bash
+    cf restage s4kit-backend --no-cache
+    ```
+  </Accordion>
+
+  <Accordion title="Redis connection refused" icon="database">
+    Verify `s4kit-redis` service is bound and has correct credentials:
+
+    ```bash
+    cf env s4kit-backend | grep -A5 s4kit-redis
+    ```
+
+    Check the `uri` field contains a valid Redis connection string.
+  </Accordion>
+
+  <Accordion title="Cookies not working (login redirects)" icon="cookie">
+    `COOKIE_DOMAIN` is auto-detected from `VCAP_APPLICATION`. If issues persist:
+
+    ```bash
+    cf set-env s4kit-backend COOKIE_DOMAIN ".cfapps.us10-001.hana.ondemand.com"
+    cf restart s4kit-backend
+    ```
+  </Accordion>
+
+  <Accordion title="Frontend shows wrong API URL" icon="link-slash">
+    Rebuild frontend with correct backend URL:
+
+    ```bash
+    cd packages/platform/frontend
+    NEXT_PUBLIC_API_URL=https://your-backend-url ./deploy-cf.sh
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection timeout" icon="clock">
+    Check PostgreSQL service is running and accessible:
+
+    ```bash
+    cf service s4kit-postgres
+    cf env s4kit-backend | grep -A5 s4kit-postgres
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Complete Deployment Script
+
+Save this as `deploy-cf.sh` for automated deployment:
+
+```bash
+#!/bin/bash
+set -e
+
+REGION="us10-001"  # Change for your region
+DOMAIN="cfapps.${REGION}.hana.ondemand.com"
+
+echo "🚀 Deploying S4Kit to Cloud Foundry..."
+
+# 1. Create services (skip if already exist)
+echo "📦 Creating services..."
+cf create-user-provided-service s4kit-postgres -p '{"uri":"YOUR_POSTGRES_URL"}' || true
+cf create-user-provided-service s4kit-redis -p '{"uri":"YOUR_REDIS_URL"}' || true
+cf create-user-provided-service s4kit-secrets -p "{
+  \"ENCRYPTION_KEY\": \"$(openssl rand -hex 32)\",
+  \"BETTER_AUTH_SECRET\": \"$(openssl rand -base64 32)\"
+}" || true
+
+# 2. Deploy backend
+echo "🔧 Deploying backend..."
+cf push -f packages/platform/backend/manifest.yml
+
+# 3. Deploy proxy
+echo "🔀 Deploying proxy..."
+cf push -f packages/platform/proxy/manifest.yml
+
+# 4. Deploy frontend
+echo "🎨 Deploying frontend..."
+cd packages/platform/frontend
+NEXT_PUBLIC_API_URL="https://s4kit-backend.${DOMAIN}" ./deploy-cf.sh
+cd ../../..
+
+echo "✅ Deployment complete!"
+echo ""
+echo "📍 Application URLs:"
+echo "   Frontend: https://s4kit-frontend.${DOMAIN}"
+echo "   Backend:  https://s4kit-backend.${DOMAIN}"
+echo "   Proxy:    https://s4kit-proxy.${DOMAIN}"
+```
+
+Make it executable and run:
+
+```bash
+chmod +x deploy-cf.sh
+./deploy-cf.sh
+```
+
+## Production Checklist
+
+Before going live, ensure:
+
+<CardGroup cols={2}>
+  <Card title="Secrets Rotated" icon="key">
+    Generate fresh `ENCRYPTION_KEY` and `BETTER_AUTH_SECRET`
+  </Card>
+  <Card title="Database Backups" icon="database">
+    Configure automated PostgreSQL backups
+  </Card>
+  <Card title="Monitoring" icon="chart-line">
+    Set up log aggregation and alerts
+  </Card>
+  <Card title="Scaling" icon="arrows-up-to-line">
+    Configure autoscaling for proxy service
+  </Card>
+  <Card title="Routes Secured" icon="lock">
+    Use custom domain with SSL certificate
+  </Card>
+  <Card title="Health Checks" icon="heart-pulse">
+    Verify all health endpoints respond correctly
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<Card title="View Full CF Guide" icon="file-lines" href="https://github.com/michal-majer/s4kit/blob/main/CF.md">
+  See the complete Cloud Foundry deployment guide on GitHub →
+</Card>

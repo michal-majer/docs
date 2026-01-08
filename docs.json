@@ -17,7 +17,8 @@
             "group": "Getting Started",
             "pages": [
               "index",
-              "quickstart"
+              "quickstart",
+              "contributing"
             ]
           },
           {
@@ -41,7 +42,9 @@
               "platform/services",
               "platform/api-keys",
               "platform/authentication",
-              "platform/logs"
+              "platform/logs",
+              "platform/self-hosting",
+              "platform/cloud-foundry"
             ]
           },
           {
