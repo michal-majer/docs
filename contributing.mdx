@@ -4,26 +4,12 @@ description: "Help build the future of SAP integration"
 icon: "code-pull-request"
 ---
 
-Thanks for your interest in contributing to S4Kit! This guide will help you get started with local development.
-
-## Prerequisites
-
-<CardGroup cols={3}>
-  <Card title="Bun" icon="command">
-    Version 1.3.4+ ([install](https://bun.sh))
-  </Card>
-  <Card title="Docker" icon="docker">
-    Docker Desktop or Engine ([install](https://www.docker.com/products/docker-desktop))
-  </Card>
-  <Card title="Git" icon="github">
-    For cloning and version control
-  </Card>
-</CardGroup>
+Thanks for your interest in contributing to S4Kit!
 
 ## Quick Setup
 
 <Steps>
-  <Step title="Clone Repository">
+  <Step title="Clone and Install">
     ```bash
     git clone https://github.com/michal-majer/s4kit.git
     cd s4kit
@@ -31,7 +17,7 @@ Thanks for your interest in contributing to S4Kit! This guide will help you get 
     ```
   </Step>
 
-  <Step title="Start Database Services">
+  <Step title="Start Database">
     ```bash
     docker compose up -d postgres redis
     ```
@@ -47,207 +33,31 @@ Thanks for your interest in contributing to S4Kit! This guide will help you get 
   </Step>
 
   <Step title="Start Development Servers">
-    Open 3 terminal windows and run:
-
-    **Terminal 1 - Backend API:**
     ```bash
-    cd packages/platform/backend
-    bun run dev  # http://localhost:3000
+    # Terminal 1 - Backend
+    cd packages/platform/backend && bun run dev
+
+    # Terminal 2 - Frontend
+    cd packages/platform/frontend && bun run dev
+
+    # Terminal 3 - Proxy
+    cd packages/platform/proxy && bun run dev
     ```
-
-    **Terminal 2 - Frontend Dashboard:**
-    ```bash
-    cd packages/platform/frontend
-    bun run dev  # http://localhost:3001
-    ```
-
-    **Terminal 3 - Proxy Service:**
-    ```bash
-    cd packages/platform/proxy
-    bun run dev  # http://localhost:3002
-    ```
-  </Step>
-
-  <Step title="Access Dashboard">
-    Open http://localhost:3001
-
-    **Login**: `admin@example.com` / `changeme123` (from .env)
   </Step>
 </Steps>
 
-## Development Workflow
-
-### Hot Reload
-
-All services run with `--hot` flag for automatic reloading on file changes. Just save your file and see the changes instantly.
-
-### Running Tests
-
-```bash
-# Backend tests
-cd packages/platform/backend
-bun test
-
-# Frontend E2E tests
-cd packages/platform/frontend
-bun run test:e2e
-
-# SDK tests
-cd packages/sdk
-bun test
-```
-
-### Type Checking
-
-```bash
-# Check types across all packages
-bun run type-check
-```
+**Login**: `admin@example.com` / `changeme123`
 
 ## Project Structure
 
-<AccordionGroup>
-  <Accordion title="packages/sdk" icon="npm">
-    **NPM Client Library + CLI**
+| Package | Description |
+|---------|-------------|
+| `packages/sdk/` | NPM client library + CLI |
+| `packages/platform/backend/` | Admin API (Hono.js) |
+| `packages/platform/frontend/` | Dashboard (Next.js) |
+| `packages/platform/proxy/` | SDK proxy service |
+| `packages/shared/` | Shared schema and utilities |
 
-    The TypeScript SDK that developers install via `npm install s4kit`. Includes:
-    - Type-safe query builder
-    - OData operations (CRUD, batch, transactions)
-    - CLI for type generation
-    - Error handling
-
-    Key files:
-    - `src/client.ts` - Main SDK client
-    - `src/query-builder.ts` - OData query builder
-    - `src/cli.ts` - CLI tool
-  </Accordion>
-
-  <Accordion title="packages/platform/backend" icon="server">
-    **Admin API (Hono.js)**
-
-    Backend service handling authentication, configuration, and API key management.
-
-    - Tech: Hono.js, Drizzle ORM, PostgreSQL, Redis
-    - Routes: `/api/auth/*`, `/admin/*`
-    - Database management scripts
-    - SAP API catalog (1,000+ predefined APIs)
-  </Accordion>
-
-  <Accordion title="packages/platform/frontend" icon="window">
-    **Dashboard (Next.js)**
-
-    Web UI for managing systems, API keys, and viewing logs.
-
-    - Tech: Next.js 16, React 19, Tailwind CSS 4, Shadcn/ui
-    - App Router structure
-    - Server and client components
-    - Better-auth integration
-  </Accordion>
-
-  <Accordion title="packages/platform/proxy" icon="arrow-right-arrow-left">
-    **SDK Proxy Service (Hono.js)**
-
-    Proxies SDK requests to SAP systems with authentication, rate limiting, and logging.
-
-    - Handles API key validation
-    - Manages SAP connections and auth
-    - Implements rate limiting
-    - Records request logs
-  </Accordion>
-
-  <Accordion title="packages/shared" icon="layer-group">
-    **Shared Code**
-
-    Database schema, types, and utilities used across services.
-
-    - Drizzle schema definitions
-    - Shared TypeScript types
-    - Cache abstractions
-    - Encryption utilities
-  </Accordion>
-</AccordionGroup>
-
-## Database Management
-
-Useful commands for working with the database:
-
-```bash
-cd packages/platform/backend
-
-# Open Drizzle Studio (visual editor)
-bun run db:studio
-
-# Reset database (clears and re-seeds)
-bun run db:reset
-
-# Push schema changes without migration
-bun run db:push
-
-# Generate migration from schema changes
-bun run db:generate
-
-# Apply pending migrations
-bun run db:migrate
-```
-
-## Code Conventions
-
-### TypeScript
-
-- Use strict mode
-- Prefer `interface` over `type` for objects
-- Use `const` for everything except loops
-- Explicit return types on public functions
-
-### File Organization
-
-- Group by feature, not by type
-- Colocate related files
-- Use index.ts for public exports
-- Keep files under 300 lines
-
-### API Design
-
-- RESTful routes
-- Consistent error responses
-- Input validation with Zod
-- Proper HTTP status codes
-
-### Database
-
-- Use Drizzle ORM query builder
-- Include timestamps on all tables
-- Add indexes for foreign keys
-- Use transactions for multi-step operations
-
-## Making Changes
-
-1. **Create a branch**: `git checkout -b feature/your-feature`
-2. **Make changes**: Follow code conventions
-3. **Test locally**: Run tests and verify in browser
-4. **Commit**: Write clear commit messages
-5. **Push**: `git push origin feature/your-feature`
-6. **Pull Request**: Open PR with description of changes
-
-## Need Help?
-
-<CardGroup cols={2}>
-  <Card title="Architecture Guide" icon="book" href="https://github.com/michal-majer/s4kit/blob/main/CLAUDE.md">
-    Detailed architecture and patterns
-  </Card>
-  <Card title="Backend Docs" icon="server" href="https://github.com/michal-majer/s4kit/blob/main/packages/platform/backend/CLAUDE.md">
-    Backend development guide
-  </Card>
-  <Card title="Frontend Docs" icon="window" href="https://github.com/michal-majer/s4kit/blob/main/packages/platform/frontend/CLAUDE.md">
-    Frontend development guide
-  </Card>
-  <Card title="SDK Docs" icon="npm" href="https://github.com/michal-majer/s4kit/blob/main/packages/sdk/CLAUDE.md">
-    SDK development guide
-  </Card>
-</CardGroup>
-
-<br />
-
-<Card title="Open an Issue" icon="github" href="https://github.com/michal-majer/s4kit/issues">
-  Questions, bugs, or feature requests? Create an issue →
+<Card title="Full Contributing Guide" icon="github" href="https://github.com/michal-majer/s4kit/blob/main/CONTRIBUTING.md">
+  See the complete guide on GitHub →
 </Card>

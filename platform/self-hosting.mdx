@@ -4,18 +4,12 @@ description: "Run S4Kit on your own infrastructure"
 icon: "server"
 ---
 
-Run S4Kit on your own infrastructure for full control over your data and deployment.
+Run S4Kit on your own infrastructure for full control over your data.
 
 ## Prerequisites
 
-<CardGroup cols={2}>
-  <Card title="Docker" icon="docker">
-    Docker Desktop or Docker Engine with Compose support
-  </Card>
-  <Card title="Bun Runtime" icon="command">
-    Bun 1.3.4 or higher ([install](https://bun.sh))
-  </Card>
-</CardGroup>
+- **Docker** with Compose support
+- **Bun** 1.3.4+ ([install](https://bun.sh))
 
 ## Quick Setup
 
@@ -28,12 +22,10 @@ Run S4Kit on your own infrastructure for full control over your data and deploym
     ```
   </Step>
 
-  <Step title="Start Services">
+  <Step title="Start Database Services">
     ```bash
     docker compose up -d postgres redis
     ```
-
-    This starts PostgreSQL (port 5433) and Redis (port 6379) in containers.
   </Step>
 
   <Step title="Initialize Database">
@@ -43,184 +35,68 @@ Run S4Kit on your own infrastructure for full control over your data and deploym
     bun run db:seed
     bun run db:setup-admin
     ```
-
-    Creates the database schema, seeds with 1,000+ SAP API definitions, and sets up your admin account.
   </Step>
 
-  <Step title="Build for Production">
+  <Step title="Build and Start">
     ```bash
     cd ../..
     bun run build
-    ```
 
-    Compiles all packages for production deployment.
-  </Step>
-
-  <Step title="Start Services">
-    Run in 3 separate terminals or use a process manager:
-
-    ```bash
-    # Terminal 1 - Backend API
+    # Start services (3 terminals or use PM2)
     cd packages/platform/backend && bun run start
-
-    # Terminal 2 - Frontend Dashboard
     cd packages/platform/frontend && bun run start
-
-    # Terminal 3 - Proxy Service
     cd packages/platform/proxy && bun run start
     ```
   </Step>
-
-  <Step title="Access Dashboard">
-    Open http://localhost:3001 in your browser.
-
-    Login with credentials from your `.env` file (default: `admin@example.com` / `changeme123`).
-  </Step>
 </Steps>
+
+**Access**: http://localhost:3001 | **Login**: `admin@example.com` / `changeme123`
 
 ## Service Ports
 
 | Service | Port | Description |
 |---------|------|-------------|
 | Frontend | 3001 | Admin dashboard (Next.js) |
-| Backend | 3000 | Admin API (authentication, config) |
-| Proxy | 3002 | SDK proxy (handles SAP requests) |
+| Backend | 3000 | Admin API |
+| Proxy | 3002 | SDK proxy |
 | PostgreSQL | 5433 | Database |
 | Redis | 6379 | Cache |
 
 ## Configuration
 
-### Environment Variables
-
-The main configuration is in `packages/platform/backend/.env`:
+Main config in `packages/platform/backend/.env`:
 
 ```bash
-# Server
-PORT=3000
-NODE_ENV=production
-
-# Database (matches docker-compose.yml)
 DATABASE_URL=postgresql://s4kit:s4kit_dev_password@localhost:5433/s4kit
-
-# Cache
 REDIS_URL=redis://localhost:6379
-
-# Security (generate your own!)
-ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
-BETTER_AUTH_SECRET=<generate with: openssl rand -base64 32>
-
-# Admin
+ENCRYPTION_KEY=<openssl rand -hex 32>
+BETTER_AUTH_SECRET=<openssl rand -base64 32>
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=changeme123
-ADMIN_NAME=Admin
-ORGANIZATION_NAME=My Company
-
-# Frontend URL (for CORS)
 FRONTEND_URL=http://localhost:3001
 ```
 
 <Warning>
-**Security**: Generate new values for `ENCRYPTION_KEY` and `BETTER_AUTH_SECRET` before deploying to production. Never use the example values!
+Generate new `ENCRYPTION_KEY` and `BETTER_AUTH_SECRET` for production!
 </Warning>
 
-### Proxy Configuration
-
-Create `packages/platform/proxy/.env`:
+## Process Management (PM2)
 
 ```bash
-PORT=3002
-DATABASE_URL=postgresql://s4kit:s4kit_dev_password@localhost:5433/s4kit
-REDIS_URL=redis://localhost:6379
-ENCRYPTION_KEY=<same as backend>
-```
-
-## Production Deployment
-
-For production environments, see our [deployment guide](https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md) which covers:
-
-- Infrastructure setup (DNS, SSL, load balancing)
-- Database backups and replication
-- Security hardening
-- Monitoring and observability
-- High availability configuration
-
-<Card title="Advanced Deployment Guide" icon="rocket" href="https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md">
-  Complete production deployment checklist →
-</Card>
-
-## Process Management
-
-For production, use a process manager instead of running services in separate terminals:
-
-### Using PM2
-
-```bash
-# Install PM2
 npm install -g pm2
-
-# Start all services
 pm2 start packages/platform/backend/src/index.ts --name backend --interpreter ~/.bun/bin/bun
 pm2 start packages/platform/frontend/server.js --name frontend
 pm2 start packages/platform/proxy/src/index.ts --name proxy --interpreter ~/.bun/bin/bun
-
-# Save configuration
-pm2 save
-pm2 startup
+pm2 save && pm2 startup
 ```
 
-### Using Docker Compose
-
-Alternatively, build Docker images for each service and orchestrate with Docker Compose or Kubernetes.
-
-## Database Management
-
-Common database tasks:
+## Health Checks
 
 ```bash
-cd packages/platform/backend
-
-# View database with GUI
-bun run db:studio
-
-# Reset database (development only!)
-bun run db:reset
-
-# Push schema changes
-bun run db:push
+curl http://localhost:3000/api/health  # Backend
+curl http://localhost:3002/health      # Proxy
 ```
 
-## Monitoring
-
-### Health Checks
-
-- Backend: `curl http://localhost:3000/api/health`
-- Proxy: `curl http://localhost:3002/health`
-
-Both return JSON with status and resource metrics.
-
-### Logs
-
-Application logs are written to stdout. Use your preferred logging solution:
-
-- Docker: `docker compose logs -f`
-- PM2: `pm2 logs`
-- systemd: `journalctl -u s4kit-*`
-
-## Updating
-
-To update your self-hosted instance:
-
-```bash
-git pull
-bun install
-bun run build
-
-# Restart services with your process manager
-pm2 restart all
-```
-
-## Support
-
-- See [DEPLOY.md](https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md) for production deployment
-- Check [CLAUDE.md](https://github.com/michal-majer/s4kit/blob/main/CLAUDE.md) for architecture details
-- Open an [issue on GitHub](https://github.com/michal-majer/s4kit/issues) for bugs or questions
+<Card title="Production Deployment" icon="rocket" href="https://github.com/michal-majer/s4kit/blob/main/DEPLOY.md">
+  See DEPLOY.md for infrastructure, SSL, and scaling →
+</Card>
