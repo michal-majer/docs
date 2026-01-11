@@ -8,13 +8,13 @@ description: "S4Kit Admin API documentation"
 The S4Kit Admin API provides programmatic access to manage your S4Kit resources. Use it to automate system configuration, manage API keys, and query logs.
 
 <Info>
-  Most users interact with S4Kit through the [SDK](/sdk/installation) for SAP operations and the [Dashboard](https://app.s4kit.com) for configuration. The Admin API is for advanced automation use cases.
+  Most users interact with S4Kit through the [SDK](/sdk/installation) for SAP operations and the [Dashboard](https://staging.app.s4kit.com) for configuration. The Admin API is for advanced automation use cases.
 </Info>
 
 ## Base URL
 
 ```
-https://api.s4kit.com/admin
+https://staging.api.s4kit.com/admin
 ```
 
 ## Authentication
@@ -22,7 +22,7 @@ https://api.s4kit.com/admin
 All Admin API requests require authentication using a session token from the dashboard or an admin API key.
 
 ```bash
-curl https://api.s4kit.com/admin/systems \
+curl https://staging.api.s4kit.com/admin/systems \
   -H "Authorization: Bearer <your-token>"
 ```
 
@@ -126,7 +126,7 @@ Currently, the Admin API is best accessed via HTTP requests. Official SDKs for t
 
 ```typescript
 // Example using fetch
-const response = await fetch('https://api.s4kit.com/admin/systems', {
+const response = await fetch('https://staging.api.s4kit.com/admin/systems', {
   headers: {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'

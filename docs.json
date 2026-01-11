@@ -98,7 +98,7 @@
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.s4kit.com"
+      "href": "https://staging.app.s4kit.com"
     }
   },
   "contextual": {

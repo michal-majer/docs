@@ -10,8 +10,8 @@
   },
   "servers": [
     {
-      "url": "https://api.s4kit.com",
-      "description": "Production"
+      "url": "https://staging.api.s4kit.com",
+      "description": "Staging"
     }
   ],
   "security": [
