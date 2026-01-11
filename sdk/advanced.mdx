@@ -11,19 +11,19 @@ Execute multiple operations atomically with automatic rollback on failure:
 ```typescript
 const result = await client.transaction(async (tx) => {
   // Create a sales order
-  const order = await tx.sap.A_SalesOrder.create({
+  const order = await tx.A_SalesOrder.create({
     SalesOrderType: 'OR',
     SoldToParty: '10100001'
   });
 
   // Create order items
-  await tx.sap.A_SalesOrderItem.create({
+  await tx.A_SalesOrderItem.create({
     SalesOrder: order.SalesOrder,
     Material: 'TG11',
     RequestedQuantity: 10
   });
 
-  await tx.sap.A_SalesOrderItem.create({
+  await tx.A_SalesOrderItem.create({
     SalesOrder: order.SalesOrder,
     Material: 'TG12',
     RequestedQuantity: 5
@@ -55,9 +55,9 @@ Execute multiple independent operations in a single HTTP request:
 const batch = client.batch();
 
 // Queue operations
-batch.add(client.sap.A_BusinessPartner.list({ top: 10 }));
-batch.add(client.sap.A_SalesOrder.list({ top: 10 }));
-batch.add(client.sap.A_Product.get('TG11'));
+batch.add(client.A_BusinessPartner.list({ top: 10 }));
+batch.add(client.A_SalesOrder.list({ top: 10 }));
+batch.add(client.A_Product.get('TG11'));
 
 // Execute all at once
 const [partners, orders, product] = await batch.execute();
@@ -84,7 +84,7 @@ Functions bound to a specific entity:
 
 ```typescript
 // Call a function on a specific entity
-const availability = await client.sap.A_Product
+const availability = await client.A_Product
   .boundFunc('TG11', 'CheckAvailability', {
     Plant: '1000',
     RequestedQuantity: 100
@@ -111,11 +111,11 @@ Actions bound to a specific entity:
 
 ```typescript
 // Release a sales order
-await client.sap.A_SalesOrder
+await client.A_SalesOrder
   .boundAction('1000000', 'Release');
 
 // Approve with parameters
-await client.sap.A_PurchaseOrder
+await client.A_PurchaseOrder
   .boundAction('4500000001', 'Approve', {
     ApproverComment: 'Approved for processing'
   });
@@ -188,7 +188,7 @@ const client = new S4Kit({
 Get the full OData response including metadata:
 
 ```typescript
-const response = await client.sap.A_BusinessPartner.list({
+const response = await client.A_BusinessPartner.list({
   raw: true
 });
 
@@ -202,7 +202,7 @@ console.log(response.d.__next);         // Next page URL
 Add custom headers to requests:
 
 ```typescript
-const partners = await client.sap.A_BusinessPartner.list({
+const partners = await client.A_BusinessPartner.list({
   headers: {
     'sap-language': 'DE',
     'sap-client': '100'
@@ -232,10 +232,10 @@ Handle optimistic concurrency with ETags:
 
 ```typescript
 // Get entity with ETag
-const partner = await client.sap.A_BusinessPartner.get('10100001');
+const partner = await client.A_BusinessPartner.get('10100001');
 
 // Update with ETag check (prevents concurrent modification)
-await client.sap.A_BusinessPartner.update('10100001', {
+await client.A_BusinessPartner.update('10100001', {
   BusinessPartnerFullName: 'Updated Name'
 }, {
   etag: partner.__metadata?.etag
@@ -249,7 +249,7 @@ If the entity was modified by another user, you'll receive a `409 Conflict` erro
 Create parent and child entities in a single request:
 
 ```typescript
-const order = await client.sap.A_SalesOrder.createDeep({
+const order = await client.A_SalesOrder.createDeep({
   SalesOrderType: 'OR',
   SoldToParty: '10100001',
   PurchaseOrderByCustomer: 'PO-12345',
@@ -283,7 +283,7 @@ const order = await client.sap.A_SalesOrder.createDeep({
 For very large result sets, stream results:
 
 ```typescript
-const stream = client.sap.A_BusinessPartner.stream({
+const stream = client.A_BusinessPartner.stream({
   filter: "BusinessPartnerCategory eq '1'"
 });
 

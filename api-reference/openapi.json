@@ -5,7 +5,7 @@
     "description": "Administrative API for managing S4Kit resources including systems, instances, services, and API keys.",
     "version": "1.0.0",
     "contact": {
-      "email": "support@s4kit.com"
+      "email": "contact@s4kit.com"
     }
   },
   "servers": [

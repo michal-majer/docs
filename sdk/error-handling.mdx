@@ -29,7 +29,7 @@ import { S4Kit, NotFoundError, RateLimitError } from 's4kit';
 const client = new S4Kit({ apiKey: '...' });
 
 try {
-  const partner = await client.sap.A_BusinessPartner.get('10100001');
+  const partner = await client.A_BusinessPartner.get('10100001');
 } catch (error) {
   if (error instanceof NotFoundError) {
     console.log('Partner not found');
@@ -62,7 +62,7 @@ Thrown when request data fails validation:
 
 ```typescript
 try {
-  await client.sap.A_BusinessPartner.create({
+  await client.A_BusinessPartner.create({
     // Missing required fields
   });
 } catch (error) {
@@ -79,7 +79,7 @@ Thrown when an entity doesn't exist:
 
 ```typescript
 try {
-  const partner = await client.sap.A_BusinessPartner.get('INVALID');
+  const partner = await client.A_BusinessPartner.get('INVALID');
 } catch (error) {
   if (error instanceof NotFoundError) {
     console.log(`Entity not found: ${error.entityName} with key ${error.key}`);
@@ -94,7 +94,7 @@ Thrown when authentication fails (invalid API key):
 ```typescript
 try {
   const client = new S4Kit({ apiKey: 'invalid_key' });
-  await client.sap.A_BusinessPartner.list();
+  await client.A_BusinessPartner.list();
 } catch (error) {
   if (error instanceof AuthenticationError) {
     console.log('Invalid API key');
@@ -109,7 +109,7 @@ Thrown when the API key lacks required permissions:
 ```typescript
 try {
   // API key doesn't have delete permission
-  await client.sap.A_BusinessPartner.delete('10100001');
+  await client.A_BusinessPartner.delete('10100001');
 } catch (error) {
   if (error instanceof AuthorizationError) {
     console.log('Permission denied:', error.message);
@@ -124,7 +124,7 @@ Thrown when rate limits are exceeded:
 
 ```typescript
 try {
-  await client.sap.A_BusinessPartner.list();
+  await client.A_BusinessPartner.list();
 } catch (error) {
   if (error instanceof RateLimitError) {
     console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);
@@ -139,7 +139,7 @@ Thrown for network-related issues:
 
 ```typescript
 try {
-  await client.sap.A_BusinessPartner.list();
+  await client.A_BusinessPartner.list();
 } catch (error) {
   if (error instanceof NetworkError) {
     console.log('Network error:', error.message);
@@ -154,7 +154,7 @@ Thrown when SAP returns an OData error:
 
 ```typescript
 try {
-  await client.sap.A_SalesOrder.create({ /* invalid data */ });
+  await client.A_SalesOrder.create({ /* invalid data */ });
 } catch (error) {
   if (error instanceof ODataError) {
     console.log('SAP Error Code:', error.sapErrorCode);
@@ -213,7 +213,7 @@ import {
 
 async function getPartner(id: string) {
   try {
-    return await client.sap.A_BusinessPartner.get(id);
+    return await client.A_BusinessPartner.get(id);
   } catch (error) {
     if (error instanceof NotFoundError) {
       return null; // Return null for missing entities
@@ -261,7 +261,7 @@ async function safeOperation<T>(
 
 // Usage
 const partner = await safeOperation(
-  () => client.sap.A_BusinessPartner.get('10100001'),
+  () => client.A_BusinessPartner.get('10100001'),
   null
 );
 ```
@@ -293,7 +293,7 @@ When errors occur, the SDK includes helpful debugging information:
 
 ```typescript
 try {
-  await client.sap.A_BusinessPartner.get('INVALID');
+  await client.A_BusinessPartner.get('INVALID');
 } catch (error) {
   console.log(error.message);      // Human-readable message
   console.log(error.code);         // 'NOT_FOUND'

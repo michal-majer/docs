@@ -118,7 +118,7 @@ The SDK automatically resolves services based on entity names:
 
 ```typescript
 // SDK determines service from entity name
-const partners = await client.sap.A_BusinessPartner.list();
+const partners = await client.A_BusinessPartner.list();
 // → Uses API_BUSINESS_PARTNER service
 ```
 
@@ -127,7 +127,7 @@ const partners = await client.sap.A_BusinessPartner.list();
 Specify a service explicitly:
 
 ```typescript
-const orders = await client.sap.A_SalesOrder.list({
+const orders = await client.A_SalesOrder.list({
   service: 'API_SALES_ORDER_SRV'
 });
 ```
@@ -138,7 +138,7 @@ If multiple services expose the same entity:
 
 ```typescript
 // Use service option to specify which
-const products = await client.sap.A_Product.list({
+const products = await client.A_Product.list({
   service: 'API_PRODUCT_SRV'
 });
 

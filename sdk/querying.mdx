@@ -9,7 +9,7 @@ icon: "filter"
 The SDK supports all standard OData query options for filtering, sorting, and paginating data.
 
 ```typescript
-const results = await client.sap.A_BusinessPartner.list({
+const results = await client.A_BusinessPartner.list({
   select: ['BusinessPartner', 'BusinessPartnerName'],
   filter: "BusinessPartnerCategory eq '1'",
   orderBy: 'BusinessPartnerName asc',
@@ -25,7 +25,7 @@ Limit which fields are returned to reduce payload size:
 
 ```typescript
 // Select specific fields
-const partners = await client.sap.A_BusinessPartner.list({
+const partners = await client.A_BusinessPartner.list({
   select: ['BusinessPartner', 'BusinessPartnerName', 'Industry']
 });
 ```
@@ -38,22 +38,22 @@ Filter results using OData filter syntax.
 
 ```typescript
 // Equality
-const customers = await client.sap.A_BusinessPartner.list({
+const customers = await client.A_BusinessPartner.list({
   filter: "BusinessPartnerCategory eq '1'"
 });
 
 // Not equal
-const nonCustomers = await client.sap.A_BusinessPartner.list({
+const nonCustomers = await client.A_BusinessPartner.list({
   filter: "BusinessPartnerCategory ne '1'"
 });
 
 // Numeric comparison
-const largeOrders = await client.sap.A_SalesOrder.list({
+const largeOrders = await client.A_SalesOrder.list({
   filter: "TotalNetAmount gt 10000"
 });
 
 // Date comparison
-const recentOrders = await client.sap.A_SalesOrder.list({
+const recentOrders = await client.A_SalesOrder.list({
   filter: "CreationDate ge 2024-01-01"
 });
 ```
@@ -73,17 +73,17 @@ const recentOrders = await client.sap.A_SalesOrder.list({
 
 ```typescript
 // Contains
-const searchResults = await client.sap.A_BusinessPartner.list({
+const searchResults = await client.A_BusinessPartner.list({
   filter: "substringof('Corp', BusinessPartnerName)"
 });
 
 // Starts with
-const aPartners = await client.sap.A_BusinessPartner.list({
+const aPartners = await client.A_BusinessPartner.list({
   filter: "startswith(BusinessPartnerName, 'A')"
 });
 
 // Ends with
-const ltdCompanies = await client.sap.A_BusinessPartner.list({
+const ltdCompanies = await client.A_BusinessPartner.list({
   filter: "endswith(BusinessPartnerName, 'Ltd')"
 });
 ```
@@ -92,22 +92,22 @@ const ltdCompanies = await client.sap.A_BusinessPartner.list({
 
 ```typescript
 // AND
-const activeCustomers = await client.sap.A_BusinessPartner.list({
+const activeCustomers = await client.A_BusinessPartner.list({
   filter: "BusinessPartnerCategory eq '1' and IsActiveEntity eq true"
 });
 
 // OR
-const customersOrSuppliers = await client.sap.A_BusinessPartner.list({
+const customersOrSuppliers = await client.A_BusinessPartner.list({
   filter: "BusinessPartnerCategory eq '1' or BusinessPartnerCategory eq '2'"
 });
 
 // NOT
-const notDeleted = await client.sap.A_BusinessPartner.list({
+const notDeleted = await client.A_BusinessPartner.list({
   filter: "not(IsMarkedForDeletion)"
 });
 
 // Complex combinations
-const complexFilter = await client.sap.A_BusinessPartner.list({
+const complexFilter = await client.A_BusinessPartner.list({
   filter: "(BusinessPartnerCategory eq '1' and Industry eq 'TECH') or TotalNetAmount gt 100000"
 });
 ```
@@ -116,12 +116,12 @@ const complexFilter = await client.sap.A_BusinessPartner.list({
 
 ```typescript
 // Check for null
-const withoutIndustry = await client.sap.A_BusinessPartner.list({
+const withoutIndustry = await client.A_BusinessPartner.list({
   filter: "Industry eq null"
 });
 
 // Check not null
-const withIndustry = await client.sap.A_BusinessPartner.list({
+const withIndustry = await client.A_BusinessPartner.list({
   filter: "Industry ne null"
 });
 ```
@@ -132,17 +132,17 @@ Order results by one or more fields:
 
 ```typescript
 // Single field, ascending
-const sorted = await client.sap.A_BusinessPartner.list({
+const sorted = await client.A_BusinessPartner.list({
   orderBy: 'BusinessPartnerName'
 });
 
 // Single field, descending
-const sortedDesc = await client.sap.A_BusinessPartner.list({
+const sortedDesc = await client.A_BusinessPartner.list({
   orderBy: 'BusinessPartnerName desc'
 });
 
 // Multiple fields
-const multiSorted = await client.sap.A_SalesOrder.list({
+const multiSorted = await client.A_SalesOrder.list({
   orderBy: 'SoldToParty asc, CreationDate desc'
 });
 ```
@@ -155,13 +155,13 @@ const multiSorted = await client.sap.A_SalesOrder.list({
 const pageSize = 10;
 
 // First page
-const page1 = await client.sap.A_BusinessPartner.list({
+const page1 = await client.A_BusinessPartner.list({
   top: pageSize,
   skip: 0
 });
 
 // Second page
-const page2 = await client.sap.A_BusinessPartner.list({
+const page2 = await client.A_BusinessPartner.list({
   top: pageSize,
   skip: pageSize
 });
@@ -173,7 +173,7 @@ const page2 = await client.sap.A_BusinessPartner.list({
 const pageSize = 10;
 const page = 1;
 
-const { data, count } = await client.sap.A_BusinessPartner.listWithCount({
+const { data, count } = await client.A_BusinessPartner.listWithCount({
   top: pageSize,
   skip: (page - 1) * pageSize
 });
@@ -188,7 +188,7 @@ For processing large datasets efficiently:
 
 ```typescript
 // Iterate over all pages
-for await (const partners of client.sap.A_BusinessPartner.paginate({ pageSize: 100 })) {
+for await (const partners of client.A_BusinessPartner.paginate({ pageSize: 100 })) {
   for (const partner of partners) {
     console.log(partner.BusinessPartnerName);
   }
@@ -201,17 +201,17 @@ Fetch related entities in a single request:
 
 ```typescript
 // Single expand
-const partnersWithAddresses = await client.sap.A_BusinessPartner.list({
+const partnersWithAddresses = await client.A_BusinessPartner.list({
   expand: ['to_BusinessPartnerAddress']
 });
 
 // Multiple expands
-const ordersWithDetails = await client.sap.A_SalesOrder.list({
+const ordersWithDetails = await client.A_SalesOrder.list({
   expand: ['to_Item', 'to_Partner']
 });
 
 // Nested expand (OData v4)
-const deepExpand = await client.sap.A_SalesOrder.list({
+const deepExpand = await client.A_SalesOrder.list({
   expand: ['to_Item/to_Material']
 });
 ```
@@ -219,7 +219,7 @@ const deepExpand = await client.sap.A_SalesOrder.list({
 ### Expand with Select
 
 ```typescript
-const partners = await client.sap.A_BusinessPartner.list({
+const partners = await client.A_BusinessPartner.list({
   select: ['BusinessPartner', 'BusinessPartnerName'],
   expand: [
     {
@@ -235,7 +235,7 @@ const partners = await client.sap.A_BusinessPartner.list({
 Search across multiple fields (if supported by the service):
 
 ```typescript
-const searchResults = await client.sap.A_BusinessPartner.list({
+const searchResults = await client.A_BusinessPartner.list({
   search: 'Acme'
 });
 ```
@@ -245,7 +245,7 @@ const searchResults = await client.sap.A_BusinessPartner.list({
 For complex queries, use the fluent query builder:
 
 ```typescript
-const results = await client.sap.A_BusinessPartner
+const results = await client.A_BusinessPartner
   .query()
   .select('BusinessPartner', 'BusinessPartnerName', 'Industry')
   .filter('BusinessPartnerCategory', 'eq', '1')
@@ -264,7 +264,7 @@ const results = await client.sap.A_BusinessPartner
 const startDate = '2024-01-01';
 const endDate = '2024-12-31';
 
-const ordersInRange = await client.sap.A_SalesOrder.list({
+const ordersInRange = await client.A_SalesOrder.list({
   filter: `CreationDate ge datetime'${startDate}' and CreationDate le datetime'${endDate}'`
 });
 ```
@@ -272,7 +272,7 @@ const ordersInRange = await client.sap.A_SalesOrder.list({
 ### In List Filter
 
 ```typescript
-const specificPartners = await client.sap.A_BusinessPartner.list({
+const specificPartners = await client.A_BusinessPartner.list({
   filter: "BusinessPartner eq '10100001' or BusinessPartner eq '10100002' or BusinessPartner eq '10100003'"
 });
 ```
@@ -280,7 +280,7 @@ const specificPartners = await client.sap.A_BusinessPartner.list({
 ### Case-Insensitive Search
 
 ```typescript
-const results = await client.sap.A_BusinessPartner.list({
+const results = await client.A_BusinessPartner.list({
   filter: "tolower(BusinessPartnerName) eq 'acme'"
 });
 ```

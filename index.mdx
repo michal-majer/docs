@@ -65,7 +65,7 @@ const client = new S4Kit({
   connection: 'production'
 });
 
-const partners = await client.sap.A_BusinessPartner.list({
+const partners = await client.A_BusinessPartner.list({
   select: ['BusinessPartner', 'BusinessPartnerName'],
   filter: "BusinessPartnerCategory eq '1'",
   top: 10
@@ -107,7 +107,7 @@ const partners = await client.sap.A_BusinessPartner.list({
   <Step title="You call the SDK" icon="code">
     Your app uses the S4Kit SDK with a simple API key. No SAP credentials in your code.
     ```typescript
-    await client.sap.A_SalesOrder.list({ top: 10 })
+    await client.A_SalesOrder.list({ top: 10 })
     ```
   </Step>
   <Step title="We handle the complexity" icon="shield">
@@ -130,22 +130,22 @@ const partners = await client.sap.A_BusinessPartner.list({
     Create, read, update, and delete any SAP entity. Batch operations. Deep inserts. Navigation properties.
     ```typescript
     // Create
-    const order = await client.sap.A_SalesOrder.create({ ... });
+    const order = await client.A_SalesOrder.create({ ... });
 
     // Read
-    const orders = await client.sap.A_SalesOrder.list({ top: 100 });
+    const orders = await client.A_SalesOrder.list({ top: 100 });
 
     // Update
-    await client.sap.A_SalesOrder.update(orderId, { Status: 'C' });
+    await client.A_SalesOrder.update(orderId, { Status: 'C' });
 
     // Delete
-    await client.sap.A_SalesOrder.delete(orderId);
+    await client.A_SalesOrder.delete(orderId);
     ```
   </Accordion>
   <Accordion title="Powerful Querying" icon="filter">
     Full OData query support with a clean API. Filter, sort, paginate, expand relations.
     ```typescript
-    const orders = await client.sap.A_SalesOrder.list({
+    const orders = await client.A_SalesOrder.list({
       select: ['SalesOrder', 'TotalNetAmount', 'SoldToParty'],
       filter: "CreationDate ge 2024-01-01 and TotalNetAmount gt 10000",
       orderBy: 'CreationDate desc',
@@ -157,7 +157,7 @@ const partners = await client.sap.A_BusinessPartner.list({
   <Accordion title="Type Generation" icon="wand-magic-sparkles">
     Generate TypeScript types from your SAP OData metadata. Full autocomplete in your IDE.
     ```bash
-    npx s4kit generate-types -c production -o ./types/sap.d.ts
+    npx s4kit generate-types --api-key sk_live_... --output ./types
     ```
   </Accordion>
   <Accordion title="Granular Permissions" icon="lock">

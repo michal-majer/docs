@@ -9,7 +9,7 @@ icon: "database"
 The S4Kit SDK provides a clean, intuitive API for CRUD operations on SAP OData entities. All operations are accessed through the `client.sap` namespace.
 
 ```typescript
-client.sap.EntityName.operation(...)
+client.EntityName.operation(...)
 ```
 
 ## List Entities
@@ -18,10 +18,10 @@ Retrieve multiple entities with optional filtering:
 
 ```typescript
 // List all business partners
-const partners = await client.sap.A_BusinessPartner.list();
+const partners = await client.A_BusinessPartner.list();
 
 // List with options
-const customers = await client.sap.A_BusinessPartner.list({
+const customers = await client.A_BusinessPartner.list({
   top: 10,
   skip: 0,
   select: ['BusinessPartner', 'BusinessPartnerName'],
@@ -34,7 +34,7 @@ const customers = await client.sap.A_BusinessPartner.list({
 Get entities along with the total count:
 
 ```typescript
-const { data, count } = await client.sap.A_BusinessPartner.listWithCount({
+const { data, count } = await client.A_BusinessPartner.listWithCount({
   top: 10
 });
 
@@ -47,10 +47,10 @@ Automatically fetch all pages:
 
 ```typescript
 // Get all entities (handles pagination automatically)
-const allPartners = await client.sap.A_BusinessPartner.all();
+const allPartners = await client.A_BusinessPartner.all();
 
 // With filtering
-const allCustomers = await client.sap.A_BusinessPartner.all({
+const allCustomers = await client.A_BusinessPartner.all({
   filter: "BusinessPartnerCategory eq '1'"
 });
 ```
@@ -65,13 +65,13 @@ Retrieve a single entity by its key:
 
 ```typescript
 // Get by string key
-const partner = await client.sap.A_BusinessPartner.get('10100001');
+const partner = await client.A_BusinessPartner.get('10100001');
 
 // Get by numeric key
-const product = await client.sap.A_Product.get(12345);
+const product = await client.A_Product.get(12345);
 
 // With options
-const partnerWithDetails = await client.sap.A_BusinessPartner.get('10100001', {
+const partnerWithDetails = await client.A_BusinessPartner.get('10100001', {
   select: ['BusinessPartner', 'BusinessPartnerName', 'Industry'],
   expand: ['to_BusinessPartnerAddress']
 });
@@ -82,7 +82,7 @@ const partnerWithDetails = await client.sap.A_BusinessPartner.get('10100001', {
 For entities with composite keys, pass an object:
 
 ```typescript
-const orderItem = await client.sap.A_SalesOrderItem.get({
+const orderItem = await client.A_SalesOrderItem.get({
   SalesOrder: '1000000',
   SalesOrderItem: '10'
 });
@@ -93,7 +93,7 @@ const orderItem = await client.sap.A_SalesOrderItem.get({
 Create a new entity:
 
 ```typescript
-const newPartner = await client.sap.A_BusinessPartner.create({
+const newPartner = await client.A_BusinessPartner.create({
   BusinessPartnerCategory: '1',
   BusinessPartnerFullName: 'Acme Corporation',
   Industry: 'TECH'
@@ -107,7 +107,7 @@ console.log(`Created partner: ${newPartner.BusinessPartner}`);
 Create an entity with nested related entities:
 
 ```typescript
-const orderWithItems = await client.sap.A_SalesOrder.createDeep({
+const orderWithItems = await client.A_SalesOrder.createDeep({
   SalesOrderType: 'OR',
   SoldToParty: '10100001',
   to_Item: [
@@ -130,7 +130,7 @@ const orderWithItems = await client.sap.A_SalesOrder.createDeep({
 Update an existing entity (PATCH - partial update):
 
 ```typescript
-const updated = await client.sap.A_BusinessPartner.update('10100001', {
+const updated = await client.A_BusinessPartner.update('10100001', {
   BusinessPartnerFullName: 'Acme Corporation Ltd'
 });
 ```
@@ -140,7 +140,7 @@ const updated = await client.sap.A_BusinessPartner.update('10100001', {
 Replace an entire entity (PUT - full replacement):
 
 ```typescript
-const replaced = await client.sap.A_BusinessPartner.replace('10100001', {
+const replaced = await client.A_BusinessPartner.replace('10100001', {
   BusinessPartnerCategory: '1',
   BusinessPartnerFullName: 'Acme Corporation Ltd',
   Industry: 'TECH',
@@ -153,13 +153,13 @@ const replaced = await client.sap.A_BusinessPartner.replace('10100001', {
 Delete an entity by its key:
 
 ```typescript
-await client.sap.A_BusinessPartner.delete('10100001');
+await client.A_BusinessPartner.delete('10100001');
 ```
 
 ### Delete with Composite Key
 
 ```typescript
-await client.sap.A_SalesOrderItem.delete({
+await client.A_SalesOrderItem.delete({
   SalesOrder: '1000000',
   SalesOrderItem: '10'
 });
@@ -172,7 +172,7 @@ await client.sap.A_SalesOrderItem.delete({
 Create multiple entities in a single request:
 
 ```typescript
-const partners = await client.sap.A_BusinessPartner.createMany([
+const partners = await client.A_BusinessPartner.createMany([
   { BusinessPartnerCategory: '1', BusinessPartnerFullName: 'Company A' },
   { BusinessPartnerCategory: '1', BusinessPartnerFullName: 'Company B' },
   { BusinessPartnerCategory: '1', BusinessPartnerFullName: 'Company C' }
@@ -184,7 +184,7 @@ const partners = await client.sap.A_BusinessPartner.createMany([
 Update multiple entities:
 
 ```typescript
-await client.sap.A_BusinessPartner.updateMany([
+await client.A_BusinessPartner.updateMany([
   { key: '10100001', data: { Industry: 'TECH' } },
   { key: '10100002', data: { Industry: 'RETAIL' } }
 ]);
@@ -195,7 +195,7 @@ await client.sap.A_BusinessPartner.updateMany([
 Delete multiple entities:
 
 ```typescript
-await client.sap.A_BusinessPartner.deleteMany([
+await client.A_BusinessPartner.deleteMany([
   '10100001',
   '10100002',
   '10100003'
@@ -207,7 +207,7 @@ await client.sap.A_BusinessPartner.deleteMany([
 Create or update an entity based on whether it exists:
 
 ```typescript
-const result = await client.sap.A_BusinessPartner.upsert('10100001', {
+const result = await client.A_BusinessPartner.upsert('10100001', {
   BusinessPartnerCategory: '1',
   BusinessPartnerFullName: 'Acme Corporation'
 });
@@ -219,17 +219,17 @@ Access related entities through navigation properties:
 
 ```typescript
 // Get addresses for a business partner
-const addresses = await client.sap.A_BusinessPartner
+const addresses = await client.A_BusinessPartner
   .nav('10100001', 'to_BusinessPartnerAddress')
   .list();
 
 // Get a specific address
-const address = await client.sap.A_BusinessPartner
+const address = await client.A_BusinessPartner
   .nav('10100001', 'to_BusinessPartnerAddress')
   .get('10100001', '1');
 
 // Create a new address
-const newAddress = await client.sap.A_BusinessPartner
+const newAddress = await client.A_BusinessPartner
   .nav('10100001', 'to_BusinessPartnerAddress')
   .create({
     AddressID: '2',
@@ -244,13 +244,13 @@ Use a different SAP instance for a specific request:
 
 ```typescript
 // Use sandbox for testing
-const testPartners = await client.sap.A_BusinessPartner.list({
+const testPartners = await client.A_BusinessPartner.list({
   connection: 'sandbox',
   top: 10
 });
 
 // Use production for real data
-const prodPartners = await client.sap.A_BusinessPartner.list({
+const prodPartners = await client.A_BusinessPartner.list({
   connection: 'production',
   top: 10
 });

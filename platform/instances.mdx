@@ -26,10 +26,10 @@ When an API key has access to multiple instances and no specific instance is req
 
 ```typescript
 // If API key has access to dev and sandbox, dev is used
-const partners = await client.sap.A_BusinessPartner.list();
+const partners = await client.A_BusinessPartner.list();
 
 // Override to use a specific instance
-const sandboxPartners = await client.sap.A_BusinessPartner.list({
+const sandboxPartners = await client.A_BusinessPartner.list({
   connection: 'sandbox'
 });
 ```
@@ -184,7 +184,7 @@ Before using a new instance:
 
 ```typescript
 // Quick connectivity test
-const test = await client.sap.A_BusinessPartner.list({
+const test = await client.A_BusinessPartner.list({
   connection: 'new-instance',
   top: 1
 });

@@ -92,7 +92,7 @@ const client = new S4Kit(config);
 For full type safety with your SAP entities, use the CLI to generate types from OData metadata:
 
 ```bash
-npx s4kit generate-types --connection production --output ./src/types/sap.d.ts
+npx s4kit generate-types --api-key sk_live_... --output ./types
 ```
 
 Then use the types in your code:
@@ -100,7 +100,7 @@ Then use the types in your code:
 ```typescript
 import type { A_BusinessPartner } from './types/sap';
 
-const partners = await client.sap.A_BusinessPartner.list() as A_BusinessPartner[];
+const partners = await client.A_BusinessPartner.list() as A_BusinessPartner[];
 ```
 
 <Info>
@@ -127,12 +127,12 @@ Or override the connection per-request:
 
 ```typescript
 // Use production connection
-const prodOrders = await client.sap.A_SalesOrder.list({
+const prodOrders = await client.A_SalesOrder.list({
   connection: 'production'
 });
 
 // Use development connection
-const devOrders = await client.sap.A_SalesOrder.list({
+const devOrders = await client.A_SalesOrder.list({
   connection: 'dev'
 });
 ```

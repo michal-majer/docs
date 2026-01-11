@@ -26,29 +26,25 @@ s4kit <command> [options]
 Generate TypeScript type definitions from SAP OData metadata:
 
 ```bash
-npx s4kit generate-types --connection production --output ./src/types/sap.d.ts
+npx s4kit generate-types --api-key sk_live_... --output ./types
 ```
 
 #### Options
 
 | Option | Alias | Description | Required |
 |--------|-------|-------------|----------|
-| `--connection` | `-c` | SAP instance alias | Yes |
-| `--service` | `-s` | OData service name (or all services) | No |
-| `--output` | `-o` | Output file path | Yes |
-| `--api-key` | `-k` | API key (or use S4KIT_API_KEY env) | No |
+| `--api-key` | `-k` | Your S4Kit API key | Yes |
+| `--base-url` | `-b` | API proxy URL | No |
+| `--output` | `-o` | Output directory path | Yes |
 
 #### Examples
 
 ```bash
-# Generate types for all services
-npx s4kit generate-types -c production -o ./types/sap.d.ts
+# Generate types (minimal)
+npx s4kit generate-types --api-key sk_live_abc123 --output ./types
 
-# Generate types for a specific service
-npx s4kit generate-types -c production -s API_BUSINESS_PARTNER -o ./types/bp.d.ts
-
-# With explicit API key
-npx s4kit generate-types -c production -o ./types/sap.d.ts -k sk_live_abc123
+# With custom base URL
+npx s4kit generate-types --api-key sk_live_abc123 --base-url https://proxy.s4kit.com/api/proxy --output ./types
 ```
 
 #### Generated Types
@@ -94,7 +90,7 @@ import { S4Kit } from 's4kit';
 const client = new S4Kit({ apiKey: '...' });
 
 // Fully typed response
-const partners: A_BusinessPartner[] = await client.sap.A_BusinessPartner.list();
+const partners: A_BusinessPartner[] = await client.A_BusinessPartner.list();
 
 // Autocomplete for fields
 partners.forEach(p => {
@@ -133,31 +129,6 @@ npx s4kit help
 npx s4kit help generate-types
 ```
 
-## Configuration File
-
-Create `s4kit.config.ts` for persistent CLI configuration:
-
-```typescript
-// s4kit.config.ts
-import type { S4KitConfig } from 's4kit';
-
-export default {
-  apiKey: process.env.S4KIT_API_KEY,
-  defaultConnection: 'production',
-  types: {
-    output: './src/types/sap.d.ts',
-    services: ['API_BUSINESS_PARTNER', 'API_SALES_ORDER_SRV']
-  }
-} satisfies S4KitConfig;
-```
-
-Then run without options:
-
-```bash
-npx s4kit generate-types
-# Uses configuration from s4kit.config.ts
-```
-
 ## Environment Variables
 
 The CLI respects these environment variables:
@@ -166,13 +137,11 @@ The CLI respects these environment variables:
 |----------|-------------|
 | `S4KIT_API_KEY` | Default API key |
 | `S4KIT_BASE_URL` | Custom API base URL |
-| `S4KIT_CONNECTION` | Default connection |
-| `S4KIT_DEBUG` | Enable debug logging |
 
 ```bash
 # .env
 S4KIT_API_KEY=sk_live_abc123
-S4KIT_CONNECTION=production
+S4KIT_BASE_URL=https://proxy.s4kit.com/api/proxy
 ```
 
 ## CI/CD Integration
@@ -200,7 +169,7 @@ jobs:
 
       - run: npm install
 
-      - run: npx s4kit generate-types -c production -o ./src/types/sap.d.ts
+      - run: npx s4kit generate-types --api-key $S4KIT_API_KEY --output ./types
         env:
           S4KIT_API_KEY: ${{ secrets.S4KIT_API_KEY }}
 
@@ -208,7 +177,7 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add src/types/
+          git add types/
           git diff --staged --quiet || git commit -m "chore: update SAP types"
           git push
 ```
@@ -221,12 +190,12 @@ generate-types:
   image: node:20
   script:
     - npm install
-    - npx s4kit generate-types -c production -o ./src/types/sap.d.ts
+    - npx s4kit generate-types --api-key $S4KIT_API_KEY --output ./types
   variables:
     S4KIT_API_KEY: $S4KIT_API_KEY
   artifacts:
     paths:
-      - src/types/
+      - types/
 ```
 
 ## Troubleshooting
@@ -238,25 +207,16 @@ Error: Authentication failed. Check your API key.
 ```
 
 Verify your API key:
-- Check `S4KIT_API_KEY` environment variable is set
-- Ensure the key has access to the specified connection
-- Try using `--api-key` flag explicitly
+- Check the API key is correct
+- Ensure the `--api-key` flag is provided
+- Try using environment variable `S4KIT_API_KEY`
 
-### Connection Not Found
-
-```bash
-Error: Connection 'production' not found.
-```
-
-Verify the connection exists in your S4Kit dashboard and your API key has access to it.
-
-### Service Not Found
+### Invalid Base URL
 
 ```bash
-Error: Service 'API_BUSINESS_PARTNER' not found for connection 'production'.
+Error: Cannot connect to API.
 ```
 
-Check that:
-1. The service is registered in the platform
-2. The service is bound to an instance
-3. Your API key has access to the service
+Verify the base URL:
+- Check the `--base-url` flag points to your S4Kit proxy
+- Ensure the URL is reachable from your network

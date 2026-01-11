@@ -133,12 +133,12 @@ X-RateLimit-Reset: 1640000000
 import { RateLimitError } from 's4kit';
 
 try {
-  await client.sap.A_BusinessPartner.list();
+  await client.A_BusinessPartner.list();
 } catch (error) {
   if (error instanceof RateLimitError) {
     // Wait and retry
     await sleep(error.retryAfter * 1000);
-    await client.sap.A_BusinessPartner.list();
+    await client.A_BusinessPartner.list();
   }
 }
 ```

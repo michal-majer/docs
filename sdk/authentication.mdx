@@ -112,7 +112,7 @@ When you exceed rate limits, you'll receive a `429 Too Many Requests` response w
 import { RateLimitError } from 's4kit';
 
 try {
-  const data = await client.sap.A_BusinessPartner.list();
+  const data = await client.A_BusinessPartner.list();
 } catch (error) {
   if (error instanceof RateLimitError) {
     console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);
@@ -164,7 +164,7 @@ const client = new S4Kit({
 
 try {
   // Make a simple request to verify authentication
-  const partners = await client.sap.A_BusinessPartner.list({ top: 1 });
+  const partners = await client.A_BusinessPartner.list({ top: 1 });
   console.log('Authentication successful!');
 } catch (error) {
   console.error('Authentication failed:', error.message);

@@ -52,7 +52,7 @@ Query SAP entities using the intuitive SDK interface:
 
 ```typescript
 // List business partners
-const partners = await client.sap.A_BusinessPartner.list({
+const partners = await client.A_BusinessPartner.list({
   top: 10,
   select: ['BusinessPartner', 'BusinessPartnerName', 'BusinessPartnerCategory']
 });
@@ -71,10 +71,10 @@ console.log(partners);
   <Tab title="Read">
     ```typescript
     // Get a single entity by ID
-    const partner = await client.sap.A_BusinessPartner.get('10100001');
+    const partner = await client.A_BusinessPartner.get('10100001');
 
     // List with filtering
-    const customers = await client.sap.A_BusinessPartner.list({
+    const customers = await client.A_BusinessPartner.list({
       filter: "BusinessPartnerCategory eq '1'",
       orderBy: 'BusinessPartnerName asc',
       top: 50
@@ -84,7 +84,7 @@ console.log(partners);
   <Tab title="Create">
     ```typescript
     // Create a new business partner
-    const newPartner = await client.sap.A_BusinessPartner.create({
+    const newPartner = await client.A_BusinessPartner.create({
       BusinessPartnerCategory: '1',
       BusinessPartnerFullName: 'New Company Ltd',
       // ... other fields
@@ -94,7 +94,7 @@ console.log(partners);
   <Tab title="Update">
     ```typescript
     // Update an existing entity (PATCH)
-    const updated = await client.sap.A_BusinessPartner.update('10100001', {
+    const updated = await client.A_BusinessPartner.update('10100001', {
       BusinessPartnerFullName: 'Updated Company Name'
     });
     ```
@@ -102,7 +102,7 @@ console.log(partners);
   <Tab title="Delete">
     ```typescript
     // Delete an entity
-    await client.sap.A_BusinessPartner.delete('10100001');
+    await client.A_BusinessPartner.delete('10100001');
     ```
   </Tab>
 </Tabs>
@@ -126,7 +126,7 @@ async function main() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const orders = await client.sap.A_SalesOrder.list({
+    const orders = await client.A_SalesOrder.list({
       filter: `CreationDate ge datetime'${thirtyDaysAgo.toISOString()}'`,
       select: ['SalesOrder', 'SoldToParty', 'TotalNetAmount', 'TransactionCurrency'],
       expand: ['to_Item'],
