@@ -36,7 +36,7 @@ import { S4Kit } from 's4kit';
 const client = new S4Kit({
   apiKey: 'sk_live_...',        // Required: Your API key
   connection: 'production',        // Optional: Default SAP instance
-  baseUrl: 'https://staging.api.s4kit.com', // Optional: Custom API URL
+  baseUrl: 'https://api.s4kit.com', // Optional: Custom API URL
   service: 'API_BUSINESS_PARTNER' // Optional: Default OData service
 });
 ```
@@ -47,7 +47,7 @@ const client = new S4Kit({
 |--------|------|----------|-------------|
 | `apiKey` | `string` | Yes | Your S4Kit API key (starts with `sk_live_` or `sk_test_`) |
 | `connection` | `string` | No | Default SAP instance alias to use for requests |
-| `baseUrl` | `string` | No | Custom API URL (default: `https://staging.api.s4kit.com`) |
+| `baseUrl` | `string` | No | Custom API URL (default: `https://api.s4kit.com`) |
 | `service` | `string` | No | Default OData service name |
 
 ## Environment Variables
